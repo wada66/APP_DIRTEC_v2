@@ -43,6 +43,20 @@ def calcular_dias_uteis(inicio_str, fim_str):
 
 
 @app.route("/")
+def raiz():
+    # Se não escolheu setor, redireciona para escolher setor
+    if "setor" not in session:
+        return redirect(url_for("escolher_setor"))
+
+    # Se escolheu setor, mas não fez login técnico, redireciona para login
+    if "cpf_tecnico" not in session:
+        return redirect(url_for("login"))
+
+    # Se tudo ok, mostra o formulário / ambiente principal (a rota index atual)
+    return redirect(url_for("index"))
+
+
+@app.route("/index")
 def index():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -343,6 +357,58 @@ def baixar_pdf():
             return "Arquivo PDF não encontrado", 404
     else:
         abort(404)
+        
+@app.route("/setor", methods=["GET", "POST"])
+def escolher_setor():
+    setores = ["DCOT", "DPLAM", "DIG", "DIRETOR TÉCNICO"]
+    if request.method == "POST":
+        setor = request.form.get("setor")
+        if setor in setores:
+            session["setor"] = setor
+            return redirect(url_for("login"))
+        else:
+            return "Setor inválido", 400
+    return render_template("escolher_setor.html", setores=setores)
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    setor = session.get("setor")
+    if not setor:
+        return redirect(url_for("escolher_setor"))
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT cpf_tecnico, nome_tecnico FROM tecnico WHERE setor_tecnico = %s", (setor,))
+            tecnicos = cur.fetchall()  # lista de tuplas (cpf, nome)
+
+    if request.method == "POST":
+        cpf_selecionado = request.form.get("cpf_tecnico")
+        # Validação simples: conferir se o cpf selecionado pertence ao setor
+        if cpf_selecionado and any(cpf_selecionado == t[0] for t in tecnicos):
+            session["cpf_tecnico"] = cpf_selecionado
+            session["nome_tecnico"] = next(t[1] for t in tecnicos if t[0] == cpf_selecionado)
+            return redirect(url_for("ambiente_setor", setor=session["setor"].lower().replace(" ", "-")))
+        else:
+            return "Técnico inválido para este setor", 400
+
+    return render_template("login.html", setor=setor, tecnicos=tecnicos)
+
+@app.route("/ambiente/<setor>")
+def ambiente_setor(setor):
+    # Validar se setor é válido
+    setores_validos = ["dcot", "dplam", "dig", "diretor-tecnico"]
+    if setor not in setores_validos:
+        return "Setor não encontrado", 404
+
+    # Pegar dados específicos do setor, exibir ambiente customizado
+    return render_template("ambiente_setor.html", setor=setor)
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("escolher_setor"))
+
+        
 
 
 if __name__ == "__main__":

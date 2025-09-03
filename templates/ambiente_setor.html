@@ -1,0 +1,22 @@
+<!-- templates/ambiente_setor.html -->
+{% extends "base.html" %}
+
+{% block title %}Ambiente - {{ setor|capitalize }}{% endblock %}
+
+{% block content %}
+  <h2>Bem-vindo ao ambiente do setor {{ setor|upper }}</h2>
+
+  {% if setor == "dcot" %}
+    <p>Conteúdo específico do DCOT aqui.</p>
+  {% elif setor == "dplam" %}
+    <p>Conteúdo específico do DPLAM aqui.</p>
+  {% elif setor == "dig" %}
+    <p>Conteúdo específico do DIG aqui.</p>
+  {% elif setor == "diretor-tecnico" %}
+    <p>Conteúdo específico do Diretor Técnico aqui.</p>
+  {% else %}
+    <p>Setor desconhecido.</p>
+  {% endif %}
+  
+  <a href="{{ url_for('logout') }}">Sair</a>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Login Técnico - {{ setor }}{% endblock %}
+
+{% block content %}
+<div style="
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+">
+  <form method="post" style="
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 300px;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  ">
+    <h2 style="text-align: center;">Login - Setor {{ setor }}</h2>
+
+    <label for="cpf_tecnico">Selecione seu nome:</label>
+    <select id="cpf_tecnico" name="cpf_tecnico" required>
+      <option value="" disabled selected>-- Selecione seu nome --</option>
+      {% for cpf, nome in tecnicos %}
+      <option value="{{ cpf }}">{{ nome }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit">Entrar</button>
+  </form>
+</div>
+{% endblock %}
