@@ -258,7 +258,7 @@ def inserir():
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """, (
                     "NÃO FINALIZADA" if not formulario.get("finalizar") else "FINALIZADA",
-                    formulario.get("responsavel_analise") or None,
+                    session.get("cpf_tecnico") or None,
                     inicio_analise,
                     fim_analise,
                     dias_uteis_analise,
