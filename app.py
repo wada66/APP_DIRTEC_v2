@@ -5,10 +5,12 @@ import os
 import tempfile
 from dotenv import load_dotenv
 import numpy as np
-
+from dig import bp as dig_bp
+from dcot import bp as dcot_bp
+from dplam import bp as dplam_bp
+from diretor_tecnico import bp as diretor_tecnico_bp
 
 load_dotenv()
-
 
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
@@ -29,6 +31,10 @@ def get_db_connection():
         password=DB_PASSWORD
     )
 
+app.register_blueprint(dig_bp, url_prefix='/dig')
+app.register_blueprint(dcot_bp, url_prefix='/dcot')
+app.register_blueprint(dplam_bp, url_prefix='/dplam')
+app.register_blueprint(diretor_tecnico_bp, url_prefix='/diretor-tecnico')
 
 def calcular_dias_uteis(inicio_str, fim_str):
     if not inicio_str or not fim_str:
@@ -383,30 +389,30 @@ def login():
 
     if request.method == "POST":
         cpf_selecionado = request.form.get("cpf_tecnico")
-        # Validação simples: conferir se o cpf selecionado pertence ao setor
         if cpf_selecionado and any(cpf_selecionado == t[0] for t in tecnicos):
             session["cpf_tecnico"] = cpf_selecionado
             session["nome_tecnico"] = next(t[1] for t in tecnicos if t[0] == cpf_selecionado)
-            return redirect(url_for("ambiente_setor", setor=session["setor"].lower().replace(" ", "-")))
+            setor_blueprint = session["setor"].lower().replace(" ", "_")
+            return redirect(url_for(f"{setor_blueprint}.ambiente"))
         else:
             return "Técnico inválido para este setor", 400
 
+
     return render_template("login.html", setor=setor, tecnicos=tecnicos)
-
-@app.route("/ambiente/<setor>")
-def ambiente_setor(setor):
-    # Validar se setor é válido
-    setores_validos = ["dcot", "dplam", "dig", "diretor-tecnico"]
-    if setor not in setores_validos:
-        return "Setor não encontrado", 404
-
-    # Pegar dados específicos do setor, exibir ambiente customizado
-    return render_template("ambiente_setor.html", setor=setor)
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("escolher_setor"))
+
+@app.route('/redirecionar_ambiente')
+def redirecionar_ambiente():
+    setor = session.get('setor', '').lower().replace(' ', '_')
+    if setor in ['dig', 'dcot', 'dplam', 'diretor_tecnico']:
+        return redirect(url_for(f"{setor.lower()}.ambiente"))
+    else:
+        return "Setor inválido", 404
+
 
         
 

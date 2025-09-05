@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Painel do Técnico - DCOT{% endblock %}
+
+{% block content %}
+<h1>Bem-vindo, {{ nome }} ({{ setor }})</h1>
+
+<h2>📂 Processos Disponíveis</h2>
+{% if disponiveis %}
+<table>
+    <tr>
+        <th>Protocolo</th>
+        <th>Tipologia</th>
+        <th>Município</th>
+        <th>Ações</th>
+    </tr>
+    {% for protocolo, tipologia, municipio in disponiveis %}
+    <tr>
+        <td>{{ protocolo }}</td>
+        <td>{{ tipologia }}</td>
+        <td>{{ municipio }}</td>
+        <td>
+            <a href="{{ url_for('dcot.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
+            <a href="{{ url_for('dcot.captar_processo', protocolo=protocolo) }}" class="btn">Captar</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>Nenhum processo disponível no momento.</p>
+{% endif %}
+
+<h2>📁 Seus Processos Capturados</h2>
+{% if meus %}
+<table>
+    <tr>
+        <th>Protocolo</th>
+        <th>Tipologia</th>
+        <th>Município</th>
+        <th>Ações</th>
+    </tr>
+    {% for protocolo, tipologia, municipio, situacao_analise in meus %}
+    <tr>
+        <td>{{ protocolo }}</td>
+        <td>{{ tipologia }}</td>
+        <td>{{ municipio }}</td>
+        <td>
+            <a href="{{ url_for('dcot.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
+            <a href="{{ url_for('dcot.preencher_tecnico', protocolo=protocolo) }}" class="btn">Complementar</a>
+            {% if situacao_analise == "FINALIZADA" %}
+            <span class="badge-danger">FINALIZADA</span>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>Você ainda não capturou nenhum processo.</p>
+{% endif %}
+
+<p><a href="{{ url_for('dcot.ambiente') }}" class="btn btn-primary">Cadastrar Processo</a></p>
+{% endblock %}
