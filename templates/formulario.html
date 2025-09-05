@@ -226,15 +226,6 @@
             </select>
         </label>
 
-        <label>Responsável pela Análise:
-            <select name="responsavel_analise_cpf" required>
-                <option value="">--Selecione--</option>
-                {% for cpf, nome, setor in tecnico %}
-                    <option value="{{ cpf }}">{{ nome }}</option>
-                {% endfor %}
-            </select>
-        </label>
-
         <label>Tipologia:
             <select name="tipologia" id= "tipologia" required>
                 <option value="">--Selecione--</option>

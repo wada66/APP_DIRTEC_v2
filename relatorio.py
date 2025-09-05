@@ -15,7 +15,7 @@ LEGENDAS_AMIGAVEIS = {
     "responsavel_localizacao_cpf" : "Responsável Localização",
     "nome_requerente" : "Nome do Requerente",
     "tipo_de_requerente" : "Tipo de Requerente",
-    "cpf_requerente" : "CPF ou CNPJ do Requerente",
+    "cpf_cnpj_requerente" : "CPF ou CNPJ do Requerente",
     "nome_proprietario" : "Nome do Proprietário",
     "cpf_cnpj_proprietario" : "CPF ou CNPJ do Propietário",
     "matricula_imovel" : "Matrícula do Imóvel",

@@ -3,7 +3,7 @@
 {% block title %}Painel do Técnico - DCOT{% endblock %}
 
 {% block content %}
-<h1>Bem-vindo, {{ nome }} ({{ setor }})</h1>
+<h1>Bem-vindo</h1>
 
 <h2>📂 Processos Disponíveis</h2>
 {% if disponiveis %}
@@ -58,5 +58,6 @@
 <p>Você ainda não capturou nenhum processo.</p>
 {% endif %}
 
-<p><a href="{{ url_for('dcot.ambiente') }}" class="btn btn-primary">Cadastrar Processo</a></p>
+<p><a href="{{ url_for('index') }}" class="btn btn-primary">Cadastrar Processo</a></p>
+
 {% endblock %}

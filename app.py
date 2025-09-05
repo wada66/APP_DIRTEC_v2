@@ -366,7 +366,7 @@ def baixar_pdf():
         
 @app.route("/setor", methods=["GET", "POST"])
 def escolher_setor():
-    setores = ["DCOT", "DPLAM", "DIG", "DIRETOR TÉCNICO"]
+    setores = ["DCOT", "DPLAM", "DIG", "PRESIDENTE_DTEC"]
     if request.method == "POST":
         setor = request.form.get("setor")
         if setor in setores:
