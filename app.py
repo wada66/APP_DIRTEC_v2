@@ -99,7 +99,7 @@ def index():
             cur.execute("SELECT DISTINCT nome_utp FROM utp WHERE nome_utp IS NOT NULL")
             utp = [row[0] for row in cur.fetchall()]
 
-            manancial = ['LOCALIZADA', 'NÃO PRECISA LOCALIZAR']
+            manancial = ['SUPERFICIAL', 'SUBTERRÂNEA', 'SUPERFICIAL-SUBTERRÂNEA']
 
             enums = {
                 "sistema_viario": sistema_viario,
