@@ -307,15 +307,16 @@
 
         <div class="campo-condicional" id="cpf-container">
             <label>CPF:
-                <input type="text" name="cpf_cnpj_requerente" placeholder="Digite o CPF" maxlength="14">
+                <input type="text" name="cpf_requerente" id="cpf_requerente" placeholder="Digite o CPF" maxlength="14">
             </label>
         </div>
 
         <div class="campo-condicional" id="cnpj-container">
             <label>CNPJ:
-                <input type="text" name="cpf_cnpj_requerente" placeholder="Digite o CNPJ" maxlength="18">
+                <input type="text" name="cnpj_requerente" id="cnpj_requerente" placeholder="Digite o CNPJ" maxlength="18">
             </label>
         </div>
+
         <label>Nome do Proprietário: <input type="text" name="nome_proprietario"></label>
         <label>CPF/CNPJ do Proprietário: <input type="text" name="cpf_cnpj_proprietario" maxlength="14"></label>
         <label>Matrícula do Imóvel: <input type="text" name="matricula_imovel"></label>
@@ -586,13 +587,29 @@ $(function () {
         });
     }
 
-    $('#tipo_de_requerente').on('change', function() {
-        if ($(this).val() === 'PESSOA FÍSICA') {
-            applyMask($('#cpf-container input'), '###.###.###-##');
-        } else if ($(this).val() === 'PESSOA JURÍDICA') {
-            applyMask($('#cnpj-container input'), '##.###.###/####-##');
-        }
-    }).trigger('change');
+  $('#tipo_de_requerente').on('change', function () {
+    const tipo = $(this).val();
+
+    if (tipo === 'PESSOA FÍSICA') {
+        $('#cpf-container').show();
+        $('#cnpj-container').hide();
+        $('#cpf_requerente').prop('required', true).val('');
+        $('#cnpj_requerente').prop('required', false).val('');
+        applyMask($('#cpf_requerente'), '###.###.###-##');
+
+    } else if (tipo === 'PESSOA JURÍDICA') {
+        $('#cnpj-container').show();
+        $('#cpf-container').hide();
+        $('#cnpj_requerente').prop('required', true).val('');
+        $('#cpf_requerente').prop('required', false).val('');
+        applyMask($('#cnpj_requerente'), '##.###.###/####-##');
+
+    } else {
+        $('#cpf-container, #cnpj-container').hide();
+        $('#cpf_requerente, #cnpj_requerente').prop('required', false).val('');
+    }
+}).trigger('change');
+
 });
 </script>
 

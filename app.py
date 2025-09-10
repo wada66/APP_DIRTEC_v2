@@ -153,11 +153,16 @@ def inserir():
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 # Inserir requerente
-                if formulario.get("cpf_cnpj_requerente") and formulario.get("nome_requerente") and formulario.get("tipo_de_requerente"):
+                cpf = formulario.get("cpf_requerente")
+                cnpj = formulario.get("cnpj_requerente")
+                cpf_cnpj_requerente = cpf or cnpj  # pega o que estiver preenchido
+
+                if cpf_cnpj_requerente and formulario.get("nome_requerente") and formulario.get("tipo_de_requerente"):
                     cur.execute("""
                         INSERT INTO requerente (cpf_cnpj_requerente, nome_requerente, tipo_requerente)
                         VALUES (%s, %s, %s) ON CONFLICT (cpf_cnpj_requerente) DO NOTHING
-                    """, (formulario["cpf_cnpj_requerente"], formulario["nome_requerente"], formulario["tipo_de_requerente"]))
+                    """, (cpf_cnpj_requerente, formulario["nome_requerente"], formulario["tipo_de_requerente"]))
+
 
                 # Inserir proprietário
                 if formulario.get("cpf_cnpj_proprietario") and formulario.get("nome_proprietario"):
@@ -269,11 +274,15 @@ def inserir():
             conn.commit()
 
         # Gerar PDF
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as f:
-            from relatorio import gerar_pdf
-            gerar_pdf(formulario, f.name)
-            session["caminho_pdf"] = f.name
-            session["protocolo_pdf"] = formulario.get("protocolo")
+        protocolo = formulario.get("protocolo")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nome_arquivo = f"relatorio_processo_{protocolo}_{timestamp}.pdf"
+        caminho_pdf = os.path.join(tempfile.gettempdir(), nome_arquivo)
+
+        from relatorio import gerar_pdf
+        gerar_pdf(formulario, caminho_pdf)
+        session["caminho_pdf"] = caminho_pdf
+        session["protocolo_pdf"] = protocolo
 
         return redirect(url_for("index"))
 
@@ -418,4 +427,4 @@ def redirecionar_ambiente():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
