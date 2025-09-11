@@ -321,6 +321,24 @@
         <label>CPF/CNPJ do Proprietário: <input type="text" name="cpf_cnpj_proprietario" maxlength="14"></label>
         <label>Matrícula do Imóvel: <input type="text" name="matricula_imovel"></label>
 
+        <label>Prioridade:
+            <select name="prioridade" id="prioridade" required>
+                <option value="">--Selecione--</option>
+                 {% for tipo_prioridade in prioridade %}
+                    <option value="{{ tipo_prioridade }}">{{ tipo_prioridade }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>Complexidade:
+            <select name="complexidade" id="complexidade" required>
+                <option value="">--Selecione--</option>
+                {% for nivel_complexidade in complexidade %}
+                    <option value="{{ nivel_complexidade }}">{{ nivel_complexidade }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
         <hr>
 
         <h2>Áreas Condicionais</h2>
@@ -455,9 +473,23 @@
         </div>
 
         <div class="button-group">
+            <button type="submit" name="salvar" value="1">Salvar</button>
             <button type="submit" name="finalizar" value="1">Finalizar</button>
             <button type="reset">Limpar</button>
+            <button type="button" id="btn-encaminhar">Encaminhar</button>
         </div>
+
+        <div id="setor-encaminhar-container" style="display:none; margin-top:10px;">
+        <label>Escolha o setor para encaminhar:
+            <select id="setor" name="setor">
+                {% for nome_setor in setor %}
+                    <option value="{{ nome_setor }}">{{ nome_setor }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit" name="encaminhar" value="1" id="confirmar-encaminhar">Confirmar</button>
+        </div>
+
 
     </form>
 </div>
@@ -609,6 +641,12 @@ $(function () {
         $('#cpf_requerente, #cnpj_requerente').prop('required', false).val('');
     }
 }).trigger('change');
+
+  $(function() {
+        $('#btn-encaminhar').click(function() {
+            $('#setor-encaminhar-container').toggle();
+        });
+    });
 
 });
 </script>

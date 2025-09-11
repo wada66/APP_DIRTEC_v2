@@ -98,6 +98,16 @@ def index():
 
             cur.execute("SELECT DISTINCT nome_utp FROM utp WHERE nome_utp IS NOT NULL")
             utp = [row[0] for row in cur.fetchall()]
+            
+            cur.execute("SELECT DISTINCT tipo_prioridade FROM prioridade WHERE tipo_prioridade IS NOT NULL")
+            prioridade = [row[0] for row in cur.fetchall()]
+            
+            cur.execute("SELECT DISTINCT nivel_complexidade FROM complexidade WHERE nivel_complexidade IS NOT NULL")
+            complexidade = [row[0] for row in cur.fetchall()]
+            
+            cur.execute("SELECT DISTINCT nome_setor FROM setor WHERE nome_setor IS NOT NULL")
+            setor = [row[0] for row in cur.fetchall()]
+            
 
             manancial = ['SUPERFICIAL', 'SUBTERRÂNEA', 'SUPERFICIAL-SUBTERRÂNEA']
 
@@ -125,6 +135,9 @@ def index():
         curva_inundacao=curva_inundacao,
         faixa_servidao=faixa_servidao,
         sistema_viario=sistema_viario,
+        prioridade=prioridade,
+        complexidade=complexidade,
+        setor=setor,
         enums=enums,
         caminho_pdf=caminho_pdf,
         protocolo_pdf=protocolo_pdf
@@ -194,7 +207,7 @@ def inserir():
                     formulario.get("matricula_imovel"),
                     zona_apa_id,
                     zona_utp_id,
-                    formulario.get("classificacao_viaria") or None,
+                    formulario.get("sistema_viario") or None,
                     formulario.get("curva_inundacao") or None,
                     formulario.get("manancial") or None,
                     formulario.get("area") or None,
@@ -240,7 +253,7 @@ def inserir():
                     formulario.get("protocolo"),
                     formulario.get("observacoes"),
                     formulario.get("matricula_imovel"),
-                    formulario.get("numero_pasta"),
+                    formulario.get("numero_pasta") or None,
                     formulario.get("solicitacao_requerente"),
                     formulario.get("resposta_departamento"),
                     formulario.get("tramitacao"),
@@ -259,8 +272,8 @@ def inserir():
 
                 # Inserir análise 
                 cur.execute("""
-                    INSERT INTO analise (situacao_analise, responsavel_analise, inicio_analise, fim_analise, dias_uteis_analise, ultima_movimentacao, processo_protocolo)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO analise (situacao_analise, responsavel_analise, inicio_analise, fim_analise, dias_uteis_analise, ultima_movimentacao, processo_protocolo, prioridade, complexidade)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     "NÃO FINALIZADA" if not formulario.get("finalizar") else "FINALIZADA",
                     session.get("cpf_tecnico") or None,
@@ -268,7 +281,10 @@ def inserir():
                     fim_analise,
                     dias_uteis_analise,
                     datetime.now().date(),
-                    formulario.get("protocolo")
+                    formulario.get("protocolo"),
+                    formulario.get("prioridade"),
+                    formulario.get("complexidade"),
+                    
                 ))
 
             conn.commit()
