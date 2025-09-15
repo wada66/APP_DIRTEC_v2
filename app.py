@@ -12,6 +12,7 @@ from diretor_tecnico import bp as diretor_tecnico_bp
 
 load_dotenv()
 
+
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
@@ -20,7 +21,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-
+app.config['DATABASE_URL'] = os.getenv('DATABASE_URL')
 
 def get_db_connection():
     """Abre conexão nova com o banco de dados."""
@@ -46,6 +47,13 @@ def calcular_dias_uteis(inicio_str, fim_str):
     except Exception as e:
         print("Erro ao calcular dias úteis:", e)
         return None
+
+SETOR_TO_BLUEPRINT = {
+    "DIG": "dig",
+    "DCOT": "dcot",
+    "DPLAM": "dplam",
+    "PRESIDENTE_DTEC": "diretor_tecnico"
+}
 
 
 @app.route("/")
@@ -148,6 +156,11 @@ def index():
 def inserir():
     formulario = request.form.to_dict(flat=True)
 
+    acao_salvar = formulario.get("salvar")
+    acao_finalizar = formulario.get("finalizar")
+    acao_encaminhar = formulario.get("encaminhar")
+    setor_destino = formulario.get("setor_destino")
+
     interesse_social = formulario.get("interesse_social") == "on"
     lei_inclui_perimetro_urbano = formulario.get("lei_inclui_perimetro_urbano") == "on"
 
@@ -198,6 +211,10 @@ def inserir():
                 zona_utp_id = cur.fetchone()
                 zona_utp_id = zona_utp_id[0] if zona_utp_id else None
 
+                print("zona_apa_id:", zona_apa_id, type(zona_apa_id))
+                print("zona_utp_id:", zona_utp_id, type(zona_utp_id))
+
+                
                 # Inserção no imóvel usando os ids obtidos
                 cur.execute("""
                     INSERT INTO imovel (matricula_imovel, zona_apa, zona_utp, classificacao_viaria, curva_inundacao, manancial, area, localidade_imovel, latitude, longitude, faixa_servidao)
@@ -254,12 +271,12 @@ def inserir():
                     formulario.get("observacoes"),
                     formulario.get("matricula_imovel"),
                     formulario.get("numero_pasta") or None,
-                    formulario.get("solicitacao_requerente"),
-                    formulario.get("resposta_departamento"),
-                    formulario.get("tramitacao"),
+                    formulario.get("solicitacao_requerente") or None,
+                    formulario.get("resposta_departamento") or None,
+                    formulario.get("tramitacao") or None,
                     formulario.get("setor") or None,
-                    formulario.get("tipologia"),
-                    formulario.get("situacao_localizacao"),
+                    formulario.get("tipologia") or None,
+                    formulario.get("situacao_localizacao") or None,
                     formulario.get("responsavel_localizacao_cpf") or None,
                     inicio_localizacao,
                     fim_localizacao,
@@ -286,25 +303,212 @@ def inserir():
                     formulario.get("complexidade"),
                     
                 ))
+       
+                cur.execute(
+                    "SELECT protocolo FROM processo WHERE protocolo = %s", (formulario.get("protocolo"),)
+                )
+                existe_processo = cur.fetchone()
 
-            conn.commit()
+                if existe_processo:
+                    # Atualizar processo e analise
+                    cur.execute(
+                        """
+                        UPDATE processo SET
+                            observacoes = %s,
+                            imovel_matricula = %s,
+                            pasta_numero = %s,
+                            solicitacao_requerente = %s,
+                            resposta_departamento = %s,
+                            tramitacao = %s,
+                            setor_nome = %s,
+                            tipologia = %s,
+                            situacao_localizacao = %s,
+                            responsavel_localizacao = %s,
+                            inicio_localizacao = %s,
+                            fim_localizacao = %s,
+                            dias_uteis_localizacao = %s,
+                            requerente = %s,
+                            nome_ou_loteamento_do_condominio_a_ser_aprovado = %s,
+                            interesse_social = %s,
+                            data_entrada = %s
+                        WHERE protocolo = %s
+                        """,
+                        (
+                            formulario.get("observacoes"),
+                            formulario.get("matricula_imovel"),
+                            formulario.get("numero_pasta") or None,
+                            formulario.get("solicitacao_requerente"),
+                            formulario.get("resposta_departamento"),
+                            formulario.get("tramitacao"),
+                            session.get("setor"),
+                            formulario.get("tipologia"),
+                            formulario.get("situacao_localizacao"),
+                            formulario.get("responsavel_localizacao_cpf") or None,
+                            inicio_localizacao,
+                            fim_localizacao,
+                            dias_uteis_localizacao,
+                            formulario.get("cpf_cnpj_requerente"),
+                            formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
+                            interesse_social,
+                            data_entrada,
+                            formulario.get("protocolo"),
+                        ),
+                    )
 
-        # Gerar PDF
-        protocolo = formulario.get("protocolo")
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        nome_arquivo = f"relatorio_processo_{protocolo}_{timestamp}.pdf"
-        caminho_pdf = os.path.join(tempfile.gettempdir(), nome_arquivo)
+                    # Atualizar analise conforme ação
+                    if acao_finalizar:
+                        situacao_analise = "FINALIZADA"
+                    else:
+                        situacao_analise = "NÃO FINALIZADA"
 
-        from relatorio import gerar_pdf
-        gerar_pdf(formulario, caminho_pdf)
-        session["caminho_pdf"] = caminho_pdf
-        session["protocolo_pdf"] = protocolo
+                    cur.execute(
+                        """
+                        UPDATE analise SET
+                            situacao_analise = %s,
+                            fim_analise = %s,
+                            dias_uteis_analise = %s,
+                            ultima_movimentacao = %s
+                        WHERE processo_protocolo = %s
+                        """,
+                        (
+                            situacao_analise,
+                            fim_analise,
+                            dias_uteis_analise,
+                            datetime.now().date(),
+                            formulario.get("protocolo"),
+                        ),
+                    )
 
-        return redirect(url_for("index"))
+                else:
+                    # Inserir processo e analise
+                    cur.execute(
+                        """
+                        INSERT INTO processo (
+                            protocolo, observacoes, imovel_matricula, pasta_numero, solicitacao_requerente,
+                            resposta_departamento, tramitacao, setor_nome, tipologia, situacao_localizacao,
+                            responsavel_localizacao, inicio_localizacao, fim_localizacao,
+                            dias_uteis_localizacao, requerente,
+                            nome_ou_loteamento_do_condominio_a_ser_aprovado, interesse_social,
+                            data_entrada
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            formulario.get("protocolo"),
+                            formulario.get("observacoes"),
+                            formulario.get("matricula_imovel"),
+                            formulario.get("numero_pasta") or None,
+                            formulario.get("solicitacao_requerente"),
+                            formulario.get("resposta_departamento"),
+                            formulario.get("tramitacao"),
+                            session.get("setor"),
+                            formulario.get("tipologia"),
+                            formulario.get("situacao_localizacao"),
+                            formulario.get("responsavel_localizacao_cpf") or None,
+                            inicio_localizacao,
+                            fim_localizacao,
+                            dias_uteis_localizacao,
+                            formulario.get("cpf_cnpj_requerente"),
+                            formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
+                            interesse_social,
+                            data_entrada,
+                        ),
+                    )
+
+                    cur.execute(
+                        """
+                        INSERT INTO analise (
+                            situacao_analise, responsavel_analise, inicio_analise, fim_analise,
+                            dias_uteis_analise, ultima_movimentacao, processo_protocolo
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            "FINALIZADA" if acao_finalizar else "NÃO FINALIZADA",
+                            session.get("cpf_tecnico"),
+                            inicio_analise,
+                            fim_analise,
+                            dias_uteis_analise,
+                            datetime.now().date(),
+                            formulario.get("protocolo"),
+                        ),
+                    )
+
+                # Fluxo encaminhar: atualizar setor e responsável, inserir histórico
+                if acao_encaminhar:
+                    if not setor_destino:
+                        return "Setor destino não informado", 400
+                    blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_destino)
+                else:
+                    setor_sessao = session.get("setor")
+                    blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_sessao)
+
+                if not blueprint_redirect:
+                    return "Setor inválido para redirecionamento", 400
+
+                return redirect(url_for(f"{blueprint_redirect}.ambiente"))
+            
+            cur.execute(
+                        """
+                        UPDATE processo SET setor_nome = %s WHERE protocolo = %s
+                        """,
+                        (setor_destino, formulario.get("protocolo")),
+                    )
+
+            cur.execute(
+                        """
+                        UPDATE analise SET responsavel_analise = %s WHERE processo_protocolo = %s
+                        """,
+                        (tecnico_origem, formulario.get("protocolo")),
+                    )
+
+            cur.execute(
+                        """
+                        INSERT INTO historico (
+                            processo_protocolo, setor_origem, setor_destino,
+                            tecnico_responsavel_anterior, tecnico_novo_responsavel,
+                            data_encaminhamento
+                        ) VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        """,
+                        (
+                            formulario.get("protocolo"),
+                            setor_origem,
+                            setor_destino,
+                            tecnico_origem,
+                            tecnico_origem,  # pode ajustar se quiser outro responsavel novo
+                        ),
+                    )
+
+                
+
+                    # Redirecionar após as ações:
+            if acao_encaminhar or acao_finalizar or acao_salvar:
+                    return redirect(url_for("index"))
+            else:
+                    return "Ação desconhecida", 400
 
     except Exception as e:
-        print(f"Erro na inserção: {e}")
-        return f"Erro ao inserir dados: {e}", 500
+        import traceback
+        print("Erro completo:")
+        traceback.print_exc()
+        print("Dados do formulário:")
+        for k, v in formulario.items():
+            print(f"{k} = {v} ({len(v) if v else 0})")
+        return f"Erro ao inserir/atualizar dados: {e}", 500
+
+    
+    conn.commit()
+
+        # Gerar PDF
+    protocolo = formulario.get("protocolo")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    nome_arquivo = f"relatorio_processo_{protocolo}_{timestamp}.pdf"
+    caminho_pdf = os.path.join(tempfile.gettempdir(), nome_arquivo)
+
+    from relatorio import gerar_pdf
+    gerar_pdf(formulario, caminho_pdf)
+    session["caminho_pdf"] = caminho_pdf
+    session["protocolo_pdf"] = protocolo
+
+    return redirect(url_for("index"))
 
 
 @app.route("/get_zonas_urbanas/<municipio>")
@@ -417,11 +621,15 @@ def login():
         if cpf_selecionado and any(cpf_selecionado == t[0] for t in tecnicos):
             session["cpf_tecnico"] = cpf_selecionado
             session["nome_tecnico"] = next(t[1] for t in tecnicos if t[0] == cpf_selecionado)
-            setor_blueprint = session["setor"].lower().replace(" ", "_")
-            return redirect(url_for(f"{setor_blueprint}.ambiente"))
+
+            setor_sessao = session.get("setor")
+            blueprint_nome = SETOR_TO_BLUEPRINT.get(setor_sessao)
+            if not blueprint_nome:
+                return "Setor inválido", 400
+
+            return redirect(url_for(f"{blueprint_nome}.ambiente"))
         else:
             return "Técnico inválido para este setor", 400
-
 
     return render_template("login.html", setor=setor, tecnicos=tecnicos)
 
@@ -437,10 +645,6 @@ def redirecionar_ambiente():
         return redirect(url_for(f"{setor.lower()}.ambiente"))
     else:
         return "Setor inválido", 404
-
-
-        
-
 
 if __name__ == "__main__":
     app.run(debug=True)

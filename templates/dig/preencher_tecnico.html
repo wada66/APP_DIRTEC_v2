@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Processo {{ processo[0] }}{% endblock %}
+
+{% block content %}
+<h1>Editar Processo - Protocolo {{ processo[0] }}</h1>
+
+<form method="POST" action="{{ url_for('diretor_tecnico.preencher_tecnico', protocolo=processo[0]) }}">
+  <label>Observações:
+    <textarea name="observacoes" rows="5" cols="60">{{ processo[1] }}</textarea>
+  </label><br><br>
+
+  <label>Situação da Análise:
+    <select name="situacao_analise" required>
+      <option value="NÃO FINALIZADA" {% if processo[3] != 'FINALIZADA' %}selected{% endif %}>NÃO FINALIZADA</option>
+      <option value="FINALIZADA" {% if processo[3] == 'FINALIZADA' %}selected{% endif %}>FINALIZADA</option>
+    </select>
+  </label><br><br>
+
+  <button type="submit">Salvar</button>
+</form>
+
+<p><a href="{{ url_for('dig.ambiente') }}">Cancelar</a></p>
+{% endblock %}

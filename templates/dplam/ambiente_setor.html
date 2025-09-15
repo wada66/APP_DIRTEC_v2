@@ -3,9 +3,111 @@
 {% block title %}Painel do Técnico - DPLAM{% endblock %}
 
 {% block content %}
-<h1>Bem-vindo</h1>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #0d1117;
+        color: #00bfff;
+    }
+
+    h1, h2 {
+        color: #00bfff;
+        text-align: center;
+    }
+
+    h2 {
+        margin-top: 40px;
+        font-size: 1.5rem;
+    }
+
+    /* Container centralizado das tabelas */
+    .table-container {
+        max-width: 900px;
+        margin: 20px auto;
+        background: #161b22;
+        padding: 15px;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #161b22;
+        margin-top: 10px;
+        color: #c9d1d9;
+    }
+
+    th, td {
+        padding: 10px;
+        border: 1px solid #30363d;
+        text-align: left;
+    }
+
+    th {
+        background-color: #21262d;
+        color: #58a6ff;
+    }
+
+    tr:nth-child(even) {
+        background-color: #1e242c;
+    }
+
+    a.btn {
+        text-decoration: none;
+        padding: 6px 12px;
+        border-radius: 5px;
+        font-weight: bold;
+        background-color: #238636;
+        color: #ffffff;
+        transition: background-color 0.2s;
+        margin-right: 5px;
+    }
+
+    a.btn:hover {
+        background-color: #2ea043;
+    }
+
+    .btn-secondary {
+        background-color: #2f81f7;
+    }
+
+    .btn-secondary:hover {
+        background-color: #1f6feb;
+    }
+
+    .badge-finalizada {
+        background-color: red;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 5px;
+        margin-left: 5px;
+        font-weight: bold;
+    }
+
+    p {
+        text-align: center;
+        color: #8b949e;
+    }
+
+    @media (max-width: 768px) {
+        table, th, td {
+            font-size: 14px;
+        }
+        a.btn {
+            display: block;
+            margin-bottom: 6px;
+            margin-right: 0;
+        }
+    }
+</style>
+
+<h1>Bem-vindo, {{ nome }} ({{ setor }})</h1>
 
 <h2>📂 Processos Disponíveis</h2>
+<div class="table-container">
 {% if disponiveis %}
 <table>
     <tr>
@@ -23,14 +125,33 @@
             <a href="{{ url_for('dplam.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
             <a href="{{ url_for('dplam.captar_processo', protocolo=protocolo) }}" class="btn">Captar</a>
         </td>
+        <td>
+            <a href="{{ url_for('dplam.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
+            <a href="{{ url_for('dplam.preencher_tecnico', protocolo=protocolo) }}" class="btn">Complementar</a>
+            <div class="dropdown-encaminhar" style="display:inline-block; position: relative;">
+                <button type="button" class="btn btn-warning btn-encaminhar" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar ▼</button>
+                <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position: absolute; top: 100%; left: 0; background: #161b22; border: 1px solid #30363d; padding: 8px; border-radius: 5px; z-index: 10;">
+                    <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
+                        <option value="" disabled selected>Selecione setor</option>
+                        {% for s in setores %}
+                            {% if s != setor %}
+                                <option value="{{ s }}">{{ s }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+        </td>
     </tr>
     {% endfor %}
 </table>
 {% else %}
 <p>Nenhum processo disponível no momento.</p>
 {% endif %}
+</div>
 
 <h2>📁 Seus Processos Capturados</h2>
+<div class="table-container">
 {% if meus %}
 <table>
     <tr>
@@ -40,23 +161,75 @@
         <th>Ações</th>
     </tr>
     {% for protocolo, tipologia, municipio, situacao_analise in meus %}
-    <tr>
-        <td>{{ protocolo }}</td>
-        <td>{{ tipologia }}</td>
-        <td>{{ municipio }}</td>
-        <td>
-            <a href="{{ url_for('dplam.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
-            <a href="{{ url_for('dplam.preencher_tecnico', protocolo=protocolo) }}" class="btn">Complementar</a>
-            {% if situacao_analise == "FINALIZADA" %}
-            <span class="badge-danger">FINALIZADA</span>
-            {% endif %}
-        </td>
-    </tr>
+<tr>
+    <td>{{ protocolo }}</td>
+    <td>{{ tipologia }}</td>
+    <td>{{ municipio }}</td>
+    <td>
+        <a href="{{ url_for('dplam.visualizar_processo', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Visualizar</a>
+        <a href="{{ url_for('dplam.preencher_tecnico', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Complementar</a>
+
+        {% if situacao_analise == "FINALIZADA" %}
+            <span style="background-color: red; color: white; padding: 6px 10px; border-radius: 5px; margin-left: 5px; font-weight: bold;">FINALIZADA</span>
+        {% endif %}
+
+        <div style="display:inline-block; position:relative; margin-left: 10px;">
+            <button type="button" class="btn btn-primary" onclick="toggleDropdown('{{ protocolo }}')">
+                Encaminhar ▼
+            </button>
+            <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position:absolute; top:100%; left:0; background:#161b22; padding:10px; border-radius:5px; box-shadow:0 0 5px #000; z-index:10;">
+                <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')" style="margin-right: 5px;">
+                    <option value="" disabled selected>Selecione setor</option>
+                    {% for s in setores %}
+                        {% if s != setor %}
+                            <option value="{{ s }}">{{ s }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </td>
+</tr>
     {% endfor %}
 </table>
 {% else %}
 <p>Você ainda não capturou nenhum processo.</p>
 {% endif %}
+</div>
 
-<p><a href="{{ url_for('index') }}" class="btn btn-primary">Cadastrar Processo</a></p>
+<p><a href="{{ url_for('index') }}" class="btn btn-primary">Cadastrar Novo Processo</a></p>
+
+<script>
+function toggleDropdown(protocolo) {
+    const form = document.getElementById('form-encaminhar-' + protocolo);
+    if (form.style.display === 'block') {
+        form.style.display = 'none';
+    } else {
+        document.querySelectorAll('.dropdown-encaminhar form').forEach(f => f.style.display = 'none');
+        form.style.display = 'block';
+    }
+}
+
+const urlBaseEncaminhar = "{{ url_for('dplam.encaminhar_processo', protocolo='__protocolo__', setor_destino='__setor__') }}";
+
+function submitEncaminharForm(protocolo) {
+    const form = document.getElementById('form-encaminhar-' + protocolo);
+    const select = form.querySelector('select[name="setor_destino"]');
+    if (!select.value) {
+        alert("Selecione um setor para encaminhar.");
+        return false;
+    }
+    const url = urlBaseEncaminhar
+        .replace('__protocolo__', encodeURIComponent(protocolo))
+        .replace('__setor__', encodeURIComponent(select.value));
+    form.action = url;
+    form.submit();
+}
+
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.dropdown-encaminhar')) {
+        document.querySelectorAll('.dropdown-encaminhar form').forEach(f => f.style.display = 'none');
+    }
+});
+</script>
 {% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Visualizar Processo {{ campos.Protocolo }}{% endblock %}
+
+{% block content %}
+<h1>Visualizar Processo - Protocolo {{ campos.Protocolo }}</h1>
+
+<table>
+  <tbody>
+    {% for label, valor in campos.items() %}
+    <tr>
+      <th>{{ label }}:</th>
+      <td>{{ valor }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<p><a href="{{ url_for('dplam.ambiente') }}">Voltar</a></p>
+{% endblock %}
