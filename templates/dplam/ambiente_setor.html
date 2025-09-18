@@ -104,7 +104,7 @@
     }
 </style>
 
-<h1>Bem-vindo, {{ nome }} ({{ setor }})</h1>
+<h1>Bem-vindo, {{ nome_tecnico }} ({{ setor }})</h1>
 
 <h2>📂 Processos Disponíveis</h2>
 <div class="table-container">
@@ -116,34 +116,33 @@
         <th>Município</th>
         <th>Ações</th>
     </tr>
-    {% for protocolo, tipologia, municipio in disponiveis %}
-    <tr>
-        <td>{{ protocolo }}</td>
-        <td>{{ tipologia }}</td>
-        <td>{{ municipio }}</td>
-        <td>
-            <a href="{{ url_for('dplam.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
-            <a href="{{ url_for('dplam.captar_processo', protocolo=protocolo) }}" class="btn">Captar</a>
-        </td>
-        <td>
-            <a href="{{ url_for('dplam.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
-            <a href="{{ url_for('dplam.preencher_tecnico', protocolo=protocolo) }}" class="btn">Complementar</a>
-            <div class="dropdown-encaminhar" style="display:inline-block; position: relative;">
-                <button type="button" class="btn btn-warning btn-encaminhar" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar ▼</button>
-                <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position: absolute; top: 100%; left: 0; background: #161b22; border: 1px solid #30363d; padding: 8px; border-radius: 5px; z-index: 10;">
-                    <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
-                        <option value="" disabled selected>Selecione setor</option>
-                        {% for s in setores %}
-                            {% if s != setor %}
-                                <option value="{{ s }}">{{ s }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-                </form>
-            </div>
-        </td>
-    </tr>
-    {% endfor %}
+   {% for protocolo, tipologia, municipio in disponiveis %}
+<tr>
+    <td>{{ protocolo }}</td>
+    <td>{{ tipologia }}</td>
+    <td>{{ municipio }}</td>
+    <td>
+        <a href="{{ url_for('dplam.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
+        <a href="{{ url_for('dplam.captar_processo', protocolo=protocolo) }}" class="btn">Captar</a>
+        <a href="{{ url_for('dplam.preencher_tecnico', protocolo=protocolo) }}" class="btn">Complementar</a>
+
+        <div class="dropdown-encaminhar" style="display:inline-block; position: relative;">
+            <button type="button" class="btn btn-warning btn-encaminhar" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar ▼</button>
+            <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position: absolute; top: 100%; left: 0; background: #161b22; border: 1px solid #30363d; padding: 8px; border-radius: 5px; z-index: 10;">
+                <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
+                    <option value="" disabled selected>Selecione setor</option>
+                    {% for s in setores %}
+                        {% if s != setor %}
+                            <option value="{{ s }}">{{ s }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </td>
+</tr>
+{% endfor %}
+
 </table>
 {% else %}
 <p>Nenhum processo disponível no momento.</p>

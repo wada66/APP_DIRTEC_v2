@@ -114,16 +114,12 @@ def preencher_tecnico(protocolo):
 
         # Campos para atualizar do formulário
         campos_processo = [
-            "observacoes", "numero_pasta", "solicitacao_resposta", "resposta_departamento",
-            "tramitacao", "tipologia", "municipio", "situacao_localizacao",
-            "responsavel_localizacao_cpf", "inicio_localizacao", "fim_localizacao",
+            "observacoes", "pasta_numero", "solicitacao_requerente", "resposta_departamento",
+            "tramitacao", "tipologia", 
+            "responsavel_localizacao", "inicio_localizacao", "fim_localizacao",
             "nome_ou_loteamento_do_condominio_a_ser_aprovado", "interesse_social",
-            "lei_inclui_perimetro_urbano", "nome_requerente", "tipo_de_requerente",
-            "cpf_requerente", "cnpj_requerente", "nome_proprietario", "cpf_cnpj_proprietario",
-            "matricula_imovel", "prioridade", "complexidade", "possui_apa", "apa", "zona_apa",
-            "possui_utp", "utp", "zona_utp", "possui_manancial", "tipo_manancial",
-            "possui_curva", "curva_inundacao", "possui_faixa", "faixa_servidao",
-            "possui_diretriz", "sistema_viario"
+            "tipo_requerente",
+            "imovel_matricula",
         ]
 
         # Normaliza checkbox booleanos (checkbox envia 'on' se marcado)

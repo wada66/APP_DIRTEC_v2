@@ -44,6 +44,7 @@
         padding: 10px;
         border: 1px solid #30363d;
         text-align: left;
+        vertical-align: middle;
     }
 
     th {
@@ -60,10 +61,9 @@
         padding: 6px 12px;
         border-radius: 5px;
         font-weight: bold;
-        background-color: #238636;
         color: #ffffff;
         transition: background-color 0.2s;
-        margin-right: 5px;
+        white-space: nowrap;
     }
 
     a.btn:hover {
@@ -75,6 +75,22 @@
     }
 
     .btn-secondary:hover {
+        background-color: #1f6feb;
+    }
+
+    .btn-success {
+        background-color: #238636;
+    }
+
+    .btn-success:hover {
+        background-color: #2ea043;
+    }
+
+    .btn-primary {
+        background-color: #2f81f7;
+    }
+
+    .btn-primary:hover {
         background-color: #1f6feb;
     }
 
@@ -92,6 +108,40 @@
         color: #8b949e;
     }
 
+    /* NOVAS CLASSES PARA BOTÕES NA COLUNA AÇÕES */
+    .acao-botoes {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    /* Container do dropdown para posicionar menu */
+    .dropdown-encaminhar {
+        position: relative;
+        display: inline-block;
+        margin-left: 5px;
+    }
+
+    /* Menu dropdown para encaminhar */
+    .dropdown-encaminhar form {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: #161b22;
+        border: 1px solid #30363d;
+        padding: 8px;
+        border-radius: 5px;
+        z-index: 10;
+    }
+
+    /* Ajusta largura da coluna de ações */
+    th:nth-child(4),
+    td:nth-child(4) {
+        min-width: 280px;
+    }
+
     @media (max-width: 768px) {
         table, th, td {
             font-size: 14px;
@@ -101,10 +151,17 @@
             margin-bottom: 6px;
             margin-right: 0;
         }
+        .acao-botoes {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .dropdown-encaminhar {
+            margin-left: 0;
+        }
     }
 </style>
 
-<h1>Bem-vindo, {{ nome }} ({{ setor }})</h1>
+<h1>Bem-vindo, {{ nome_tecnico }} ({{ setor }})</h1>
 
 <h2>📂 Processos Disponíveis</h2>
 <div class="table-container">
@@ -116,34 +173,33 @@
         <th>Município</th>
         <th>Ações</th>
     </tr>
-    {% for protocolo, tipologia, municipio in disponiveis %}
-    <tr>
-        <td>{{ protocolo }}</td>
-        <td>{{ tipologia }}</td>
-        <td>{{ municipio }}</td>
-        <td>
-            <a href="{{ url_for('dcot.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
-            <a href="{{ url_for('dcot.captar_processo', protocolo=protocolo) }}" class="btn">Captar</a>
-        </td>
-        <td>
-            <a href="{{ url_for('dcot.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
-            <a href="{{ url_for('dcot.preencher_tecnico', protocolo=protocolo) }}" class="btn">Complementar</a>
-            <div class="dropdown-encaminhar" style="display:inline-block; position: relative;">
-                <button type="button" class="btn btn-warning btn-encaminhar" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar ▼</button>
-                <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position: absolute; top: 100%; left: 0; background: #161b22; border: 1px solid #30363d; padding: 8px; border-radius: 5px; z-index: 10;">
-                    <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
-                        <option value="" disabled selected>Selecione setor</option>
-                        {% for s in setores %}
-                            {% if s != setor %}
-                                <option value="{{ s }}">{{ s }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-                </form>
-            </div>
-        </td>
-    </tr>
-    {% endfor %}
+{% for protocolo, tipologia, municipio in disponiveis %}
+<tr>
+    <td>{{ protocolo }}</td>
+    <td>{{ tipologia }}</td>
+    <td>{{ municipio }}</td>
+    <td>
+        <a href="{{ url_for('dcot.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
+        <a href="{{ url_for('dcot.captar_processo', protocolo=protocolo) }}" class="btn">Captar</a>
+        <a href="{{ url_for('dcot.preencher_tecnico', protocolo=protocolo) }}" class="btn">Complementar</a>
+
+        <div class="dropdown-encaminhar" style="display:inline-block; position: relative;">
+            <button type="button" class="btn btn-warning btn-encaminhar" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar ▼</button>
+            <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position: absolute; top: 100%; left: 0; background: #161b22; border: 1px solid #30363d; padding: 8px; border-radius: 5px; z-index: 10;">
+                <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
+                    <option value="" disabled selected>Selecione setor</option>
+                    {% for s in setores %}
+                        {% if s != setor %}
+                            <option value="{{ s }}">{{ s }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </td>
+</tr>
+{% endfor %}
+
 </table>
 {% else %}
 <p>Nenhum processo disponível no momento.</p>
@@ -161,35 +217,35 @@
         <th>Ações</th>
     </tr>
     {% for protocolo, tipologia, municipio, situacao_analise in meus %}
-<tr>
-    <td>{{ protocolo }}</td>
-    <td>{{ tipologia }}</td>
-    <td>{{ municipio }}</td>
-    <td>
-        <a href="{{ url_for('dcot.visualizar_processo', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Visualizar</a>
-        <a href="{{ url_for('dcot.preencher_tecnico', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Complementar</a>
+    <tr>
+        <td>{{ protocolo }}</td>
+        <td>{{ tipologia }}</td>
+        <td>{{ municipio }}</td>
+        <td>
+            <div class="acao-botoes">
+                <a href="{{ url_for('dcot.visualizar_processo', protocolo=protocolo) }}" class="btn btn-success">Visualizar</a>
+                <a href="{{ url_for('dcot.preencher_tecnico', protocolo=protocolo) }}" class="btn btn-success">Complementar</a>
 
-        {% if situacao_analise == "FINALIZADA" %}
-            <span style="background-color: red; color: white; padding: 6px 10px; border-radius: 5px; margin-left: 5px; font-weight: bold;">FINALIZADA</span>
-        {% endif %}
+                {% if situacao_analise == "FINALIZADA" %}
+                    <span class="badge-finalizada">FINALIZADA</span>
+                {% endif %}
 
-        <div style="display:inline-block; position:relative; margin-left: 10px;">
-            <button type="button" class="btn btn-primary" onclick="toggleDropdown('{{ protocolo }}')">
-                Encaminhar ▼
-            </button>
-            <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position:absolute; top:100%; left:0; background:#161b22; padding:10px; border-radius:5px; box-shadow:0 0 5px #000; z-index:10;">
-                <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')" style="margin-right: 5px;">
-                    <option value="" disabled selected>Selecione setor</option>
-                    {% for s in setores %}
-                        {% if s != setor %}
-                            <option value="{{ s }}">{{ s }}</option>
-                        {% endif %}
-                    {% endfor %}
-                </select>
-            </form>
-        </div>
-    </td>
-</tr>
+                <div class="dropdown-encaminhar">
+                    <button type="button" class="btn btn-primary" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar ▼</button>
+                    <form id="form-encaminhar-{{ protocolo }}" method="get">
+                        <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
+                            <option value="" disabled selected>Selecione setor</option>
+                            {% for s in setores %}
+                                {% if s != setor %}
+                                    <option value="{{ s }}">{{ s }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </td>
+    </tr>
     {% endfor %}
 </table>
 {% else %}
