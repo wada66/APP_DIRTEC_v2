@@ -477,38 +477,377 @@ def inserir():
                         ),
                     )
 
-                
 
                     # Redirecionar após as ações:
             if acao_encaminhar or acao_finalizar or acao_salvar:
                     return redirect(url_for("index"))
             else:
                     return "Ação desconhecida", 400
+                
+        return redirect(url_for("index"))
+
+    except Exception as e:
+            import traceback
+            print("Erro completo:")
+            traceback.print_exc()
+            print("Dados do formulário:")
+            for k, v in formulario.items():
+                print(f"{k} = {v} ({len(v) if v else 0})")
+            return f"Erro ao inserir/atualizar dados: {e}", 500@app.route("/inserir", methods=["POST"])
+def inserir():
+    formulario = request.form.to_dict(flat=True)
+
+    acao_salvar = formulario.get("salvar")
+    acao_finalizar = formulario.get("finalizar")
+    acao_encaminhar = formulario.get("encaminhar")
+    setor_destino = formulario.get("setor_destino")
+
+    interesse_social = formulario.get("interesse_social") == "on"
+    lei_inclui_perimetro_urbano = formulario.get("lei_inclui_perimetro_urbano") == "on"
+
+    inicio_localizacao = formulario.get("inicio_localizacao") or None
+    fim_localizacao = formulario.get("fim_localizacao") or None
+    inicio_analise = datetime.now()
+    fim_analise = datetime.now() if formulario.get("finalizar") else None
+
+    dias_uteis_localizacao = calcular_dias_uteis(inicio_localizacao, fim_localizacao)
+    dias_uteis_analise = calcular_dias_uteis(
+        inicio_analise.strftime("%Y-%m-%d"),
+        fim_analise.strftime("%Y-%m-%d") if fim_analise else None,
+    )
+
+    data_entrada = date.today()
+    data_previsao_resposta = data_entrada + timedelta(days=40)
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Inserir requerente
+                cpf = formulario.get("cpf_requerente")
+                cnpj = formulario.get("cnpj_requerente")
+                cpf_cnpj_requerente = cpf or cnpj
+
+                if (
+                    cpf_cnpj_requerente
+                    and formulario.get("nome_requerente")
+                    and formulario.get("tipo_de_requerente")
+                ):
+                    cur.execute(
+                        """
+                        INSERT INTO requerente (cpf_cnpj_requerente, nome_requerente, tipo_requerente)
+                        VALUES (%s, %s, %s) ON CONFLICT (cpf_cnpj_requerente) DO NOTHING
+                        """,
+                        (
+                            cpf_cnpj_requerente,
+                            formulario["nome_requerente"],
+                            formulario["tipo_de_requerente"],
+                        ),
+                    )
+
+                # Inserir proprietário
+                if formulario.get("cpf_cnpj_proprietario") and formulario.get(
+                    "nome_proprietario"
+                ):
+                    cur.execute(
+                        """
+                        INSERT INTO proprietario (cpf_cnpj_proprietario, nome_proprietario)
+                        VALUES (%s, %s) ON CONFLICT (cpf_cnpj_proprietario) DO NOTHING
+                        """,
+                        (
+                            formulario["cpf_cnpj_proprietario"],
+                            formulario["nome_proprietario"],
+                        ),
+                    )
+
+                # Obter ids de zonas
+                zona_apa_nome = formulario.get("zona_apa")
+                zona_utp_nome = formulario.get("zona_utp")
+
+                cur.execute(
+                    "SELECT id_zona_apa FROM zona_apa WHERE nome_zona_apa = %s", (zona_apa_nome,)
+                )
+                zona_apa_id = cur.fetchone()
+                zona_apa_id = zona_apa_id[0] if zona_apa_id else None
+
+                cur.execute(
+                    "SELECT id_zona_utp FROM zona_utp WHERE nome_zona_utp = %s", (zona_utp_nome,)
+                )
+                zona_utp_id = cur.fetchone()
+                zona_utp_id = zona_utp_id[0] if zona_utp_id else None
+
+                # Inserir imóvel
+                cur.execute(
+                    """
+                    INSERT INTO imovel (
+                        matricula_imovel, zona_apa, zona_utp, classificacao_viaria, curva_inundacao,
+                        manancial, area, localidade_imovel, latitude, longitude, faixa_servidao
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (matricula_imovel) DO NOTHING
+                    """,
+                    (
+                        formulario.get("matricula_imovel"),
+                        zona_apa_id,
+                        zona_utp_id,
+                        formulario.get("sistema_viario") or None,
+                        formulario.get("curva_inundacao") or None,
+                        formulario.get("manancial") or None,
+                        formulario.get("area") or None,
+                        formulario.get("localidade_imovel") or None,
+                        formulario.get("latitude") or None,
+                        formulario.get("longitude") or None,
+                        formulario.get("faixa_servidao") or None,
+                    ),
+                )
+
+                # Inserir relação imovel_municipio
+                if formulario.get("matricula_imovel") and formulario.get("municipio"):
+                    cur.execute(
+                        """
+                        INSERT INTO imovel_municipio (imovel_matricula, municipio_nome)
+                        VALUES (%s, %s) ON CONFLICT DO NOTHING
+                        """,
+                        (
+                            formulario["matricula_imovel"],
+                            formulario["municipio"],
+                        ),
+                    )
+
+                # Conectar proprietário ao imóvel
+                if formulario.get("cpf_cnpj_proprietario") and formulario.get(
+                    "matricula_imovel"
+                ):
+                    cur.execute(
+                        """
+                        INSERT INTO proprietario_imovel (proprietario_cpf_cnpj, imovel_matricula)
+                        VALUES (%s, %s) ON CONFLICT DO NOTHING
+                        """,
+                        (
+                            formulario["cpf_cnpj_proprietario"],
+                            formulario["matricula_imovel"],
+                        ),
+                    )
+
+                # Inserir pasta
+                if formulario.get("numero_pasta"):
+                    cur.execute(
+                        """
+                        INSERT INTO pasta (numero_pasta)
+                        VALUES (%s) ON CONFLICT (numero_pasta) DO NOTHING
+                        """,
+                        (formulario["numero_pasta"],),
+                    )
+
+                # Verifica se processo existe
+                cur.execute(
+                    "SELECT protocolo FROM processo WHERE protocolo = %s", (formulario.get("protocolo"),)
+                )
+                existe_processo = cur.fetchone()
+                protocolo = formulario.get("protocolo")
+
+                if existe_processo:
+                    # Atualiza processo e análise
+                    cur.execute(
+                        """
+                        UPDATE processo SET
+                            observacoes = %s,
+                            imovel_matricula = %s,
+                            pasta_numero = %s,
+                            solicitacao_requerente = %s,
+                            resposta_departamento = %s,
+                            tramitacao = %s,
+                            setor_nome = %s,
+                            tipologia = %s,
+                            situacao_localizacao = %s,
+                            responsavel_localizacao = %s,
+                            inicio_localizacao = %s,
+                            fim_localizacao = %s,
+                            dias_uteis_localizacao = %s,
+                            requerente = %s,
+                            nome_ou_loteamento_do_condominio_a_ser_aprovado = %s,
+                            interesse_social = %s,
+                            data_entrada = %s
+                        WHERE protocolo = %s
+                        """,
+                        (
+                            formulario.get("observacoes"),
+                            formulario.get("matricula_imovel"),
+                            formulario.get("numero_pasta") or None,
+                            formulario.get("solicitacao_requerente"),
+                            formulario.get("resposta_departamento"),
+                            formulario.get("tramitacao"),
+                            session.get("setor"),
+                            formulario.get("tipologia"),
+                            formulario.get("situacao_localizacao"),
+                            formulario.get("responsavel_localizacao_cpf") or None,
+                            inicio_localizacao,
+                            fim_localizacao,
+                            dias_uteis_localizacao,
+                            formulario.get("cpf_cnpj_requerente"),
+                            formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
+                            interesse_social,
+                            data_entrada,
+                            protocolo,
+                        ),
+                    )
+
+                    if acao_finalizar:
+                        situacao_analise = "FINALIZADA"
+                    else:
+                        situacao_analise = "NÃO FINALIZADA"
+
+                    cur.execute(
+                        """
+                        UPDATE analise SET
+                            situacao_analise = %s,
+                            fim_analise = %s,
+                            dias_uteis_analise = %s,
+                            ultima_movimentacao = %s
+                        WHERE processo_protocolo = %s
+                        """,
+                        (
+                            situacao_analise,
+                            fim_analise,
+                            dias_uteis_analise,
+                            datetime.now().date(),
+                            protocolo,
+                        ),
+                    )
+                else:
+                    # Insere processo e análise
+                    cur.execute(
+                        """
+                        INSERT INTO processo (
+                            protocolo, observacoes, imovel_matricula, pasta_numero, solicitacao_requerente,
+                            resposta_departamento, tramitacao, setor_nome, tipologia, situacao_localizacao,
+                            responsavel_localizacao, inicio_localizacao, fim_localizacao, dias_uteis_localizacao,
+                            requerente, nome_ou_loteamento_do_condominio_a_ser_aprovado, interesse_social,
+                            data_entrada
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            protocolo,
+                            formulario.get("observacoes"),
+                            formulario.get("matricula_imovel"),
+                            formulario.get("numero_pasta") or None,
+                            formulario.get("solicitacao_requerente"),
+                            formulario.get("resposta_departamento"),
+                            formulario.get("tramitacao"),
+                            session.get("setor"),
+                            formulario.get("tipologia"),
+                            formulario.get("situacao_localizacao"),
+                            formulario.get("responsavel_localizacao_cpf") or None,
+                            inicio_localizacao,
+                            fim_localizacao,
+                            dias_uteis_localizacao,
+                            formulario.get("cpf_cnpj_requerente"),
+                            formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
+                            interesse_social,
+                            data_entrada,
+                        ),
+                    )
+
+                    cur.execute(
+                        """
+                        INSERT INTO analise (
+                            situacao_analise, responsavel_analise, inicio_analise, fim_analise,
+                            dias_uteis_analise, ultima_movimentacao, processo_protocolo, prioridade, complexidade
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            "FINALIZADA" if acao_finalizar else "NÃO FINALIZADA",
+                            session.get("cpf_tecnico"),
+                            inicio_analise,
+                            fim_analise,
+                            dias_uteis_analise,
+                            datetime.now().date(),
+                            protocolo,
+                            formulario.get("prioridade"),
+                            formulario.get("complexidade"),
+                        ),
+                    )
+
+                # Atualiza histórico e encaminhamento se for o caso
+                if acao_encaminhar:
+                    if not setor_destino:
+                        return "Setor destino não informado", 400
+
+                    blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_destino)
+                    if not blueprint_redirect:
+                        return "Setor inválido para redirecionamento", 400
+
+                    # Atualiza setor e responsável
+                    cur.execute(
+                        """
+                        UPDATE processo SET setor_nome = %s WHERE protocolo = %s
+                        """,
+                        (setor_destino, protocolo),
+                    )
+
+                    # Assumindo que a variável tecnico_origem esteja definida corretamente
+                    tecnico_origem = session.get("cpf_tecnico")
+                    cur.execute(
+                        """
+                        UPDATE analise SET responsavel_analise = %s WHERE processo_protocolo = %s
+                        """,
+                        (tecnico_origem, protocolo),
+                    )
+
+                    # Insere no histórico
+                    cur.execute(
+                        """
+                        INSERT INTO historico (
+                            processo_protocolo, setor_origem, setor_destino,
+                            tecnico_responsavel_anterior, tecnico_novo_responsavel,
+                            data_encaminhamento
+                        ) VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        """,
+                        (
+                            protocolo,
+                            session.get("setor"),
+                            setor_destino,
+                            tecnico_origem,
+                            tecnico_origem,  # pode ajustar se quiser outro responsavel novo
+                        ),
+                    )
+                from relatorio import gerar_pdf
+
+                # Define a pasta PDFs (relativo à raiz do projeto)
+                PASTA_PDFS = os.path.join(os.path.dirname(__file__), "PDFS")
+                os.makedirs(PASTA_PDFS, exist_ok=True)
+
+                # Nome e caminho do arquivo PDF
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                nome_arquivo = f"relatorio_processo_{protocolo}_{timestamp}.pdf"
+                caminho_pdf = os.path.join(PASTA_PDFS, nome_arquivo)
+
+                caminho_pdf = os.path.join(PASTA_PDFS, "teste.pdf")
+                print("Tentando criar PDF em:", caminho_pdf)
+
+                # Gera o PDF
+                gerar_pdf(formulario, caminho_pdf)
+
+                print("Arquivo criado:", os.path.exists(caminho_pdf))
+                
+                # Salva caminho na sessão para download posterior
+                session["caminho_pdf"] = caminho_pdf
+                session["protocolo_pdf"] = protocolo
+
+                
+                if acao_encaminhar or acao_finalizar or acao_salvar:
+                    return redirect(url_for("index"))
+                else:
+                    return "Ação desconhecida", 400
 
     except Exception as e:
         import traceback
+
         print("Erro completo:")
         traceback.print_exc()
         print("Dados do formulário:")
         for k, v in formulario.items():
             print(f"{k} = {v} ({len(v) if v else 0})")
         return f"Erro ao inserir/atualizar dados: {e}", 500
-
-    
-    conn.commit()
-
-        # Gerar PDF
-    protocolo = formulario.get("protocolo")
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nome_arquivo = f"relatorio_processo_{protocolo}_{timestamp}.pdf"
-    caminho_pdf = os.path.join(tempfile.gettempdir(), nome_arquivo)
-
-    from relatorio import gerar_pdf
-    gerar_pdf(formulario, caminho_pdf)
-    session["caminho_pdf"] = caminho_pdf
-    session["protocolo_pdf"] = protocolo
-
-    return redirect(url_for("index"))
 
 
 @app.route("/get_zonas_urbanas/<municipio>")
@@ -585,7 +924,7 @@ def get_zonas_utp(utp):
 @app.route('/baixar_pdf')
 def baixar_pdf():
     caminho_pdf = session.get("caminho_pdf")
-    if caminho_pdf:
+    if caminho_pdf and os.path.exists(caminho_pdf):
         try:
             return send_file(caminho_pdf, as_attachment=True)
         except FileNotFoundError:
@@ -645,6 +984,6 @@ def redirecionar_ambiente():
         return redirect(url_for(f"{setor.lower()}.ambiente"))
     else:
         return "Setor inválido", 404
-
+    
 if __name__ == "__main__":
     app.run(debug=True)

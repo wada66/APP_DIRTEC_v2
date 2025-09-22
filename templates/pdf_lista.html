@@ -1,0 +1,15 @@
+<h2>PDFs Gerados para o Setor</h2>
+{% if pdfs %}
+    <ul>
+    {% for protocolo, caminho_pdf, data_geracao in pdfs %}
+        <li>
+            Processo: {{ protocolo }} |
+            Data: {{ data_geracao.strftime('%d/%m/%Y %H:%M') }} |
+            <a href="{{ url_for('baixar_pdf_setor', protocolo=protocolo) }}" target="_blank">Download PDF</a>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>Nenhum PDF gerado para este setor.</p>
+{% endif %}
+
