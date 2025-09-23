@@ -103,7 +103,7 @@
 <body>
 <div class="container">
     <h1>Complementar Processo - Protocolo {{ processo.protocolo }}</h1>
-    <form method="POST" action="{{ url_for('dcot_tecnico.preencher_tecnico', protocolo=processo.protocolo) }}">
+    <form method="POST" action="{{ url_for('dcot.preencher_tecnico', protocolo=processo.protocolo) }}">
 
         <h2>Informações Principais</h2>
 

@@ -809,31 +809,7 @@ def inserir():
                             tecnico_origem,
                             tecnico_origem,  # pode ajustar se quiser outro responsavel novo
                         ),
-                    )
-                from relatorio import gerar_pdf
-
-                # Define a pasta PDFs (relativo à raiz do projeto)
-                PASTA_PDFS = os.path.join(os.path.dirname(__file__), "PDFS")
-                os.makedirs(PASTA_PDFS, exist_ok=True)
-
-                # Nome e caminho do arquivo PDF
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                nome_arquivo = f"relatorio_processo_{protocolo}_{timestamp}.pdf"
-                caminho_pdf = os.path.join(PASTA_PDFS, nome_arquivo)
-
-                caminho_pdf = os.path.join(PASTA_PDFS, "teste.pdf")
-                print("Tentando criar PDF em:", caminho_pdf)
-
-                # Gera o PDF
-                gerar_pdf(formulario, caminho_pdf)
-
-                print("Arquivo criado:", os.path.exists(caminho_pdf))
-                
-                # Salva caminho na sessão para download posterior
-                session["caminho_pdf"] = caminho_pdf
-                session["protocolo_pdf"] = protocolo
-
-                
+                    )          
                 if acao_encaminhar or acao_finalizar or acao_salvar:
                     return redirect(url_for("index"))
                 else:
@@ -987,3 +963,4 @@ def redirecionar_ambiente():
     
 if __name__ == "__main__":
     app.run(debug=True)
+

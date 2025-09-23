@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Painel do Técnico - Diretor Técnico{% endblock %}
+{% block title %}Painel do Técnico - DIG{% endblock %}
 
 {% block content %}
 <style>
@@ -102,79 +102,6 @@
             margin-right: 0;
         }
     }
-
-    .td-acoes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    align-items: center;
-    }
-
-    .td-acoes > a,
-    .td-acoes > button {
-        min-width: 80px;
-        max-width: 120px;
-        padding: 5px 8px;
-        font-size: 0.9rem;
-        white-space: nowrap;
-        border-radius: 5px;
-        text-align: center;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: inline-block;
-    }
-
-    .btn-sm {
-        min-width: 90px;
-        font-size: 0.85rem;
-    }
-
-    .dropdown-encaminhar {
-        position: relative;
-    }
-
-    .dropdown-encaminhar form {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        background: #161b22;
-        border: 1px solid #30363d;
-        padding: 8px;
-        border-radius: 5px;
-        z-index: 10;
-        display: none;
-        min-width: 150px;
-    }
-
-    @media (max-width: 768px) {
-        .td-acoes {
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .td-acoes > a,
-        .td-acoes > button {
-            min-width: auto;
-            width: 100%;
-        }
-
-        .dropdown-encaminhar form {
-            position: static;
-            border: none;
-            padding: 0;
-            box-shadow: none;
-        }
-
-        .btn-encaminhar {
-        padding: 3px 6px !important;
-        font-size: 0.75rem !important;
-        min-width: 60px !important; /* diminuir de 90+ para caber */
-        max-width: 70px !important;
-        white-space !important: nowrap;
-        text-align !important: center;
-        }
-
-}
 </style>
 
 <h1>Bem-vindo, {{ nome_tecnico }} ({{ setor }})</h1>
@@ -189,30 +116,29 @@
         <th>Município</th>
         <th>Ações</th>
     </tr>
-   {% for protocolo, tipologia, municipio in disponiveis %}
+    {% for protocolo, tipologia, municipio in disponiveis %}
 <tr>
     <td>{{ protocolo }}</td>
     <td>{{ tipologia }}</td>
     <td>{{ municipio }}</td>
-    <td class="td-acoes">
-    <a href="{{ url_for('diretor_tecnico.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
-    <a href="{{ url_for('diretor_tecnico.captar_processo', protocolo=protocolo) }}" class="btn">Captar</a>
-    <a href="{{ url_for('diretor_tecnico.preencher_tecnico', protocolo=protocolo) }}" class="btn">Complementar</a>
+    <td>
+        <a href="{{ url_for('diretor_tecnico.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
+        <a href="{{ url_for('diretor_tecnico.captar_processo', protocolo=protocolo) }}" class="btn">Captar</a>
 
-    <div class="dropdown-encaminhar">
-        <button type="button" class="btn btn-warning btn-encaminhar" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar</button>
-        <form id="form-encaminhar-{{ protocolo }}" method="get">
-            <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
-                <option value="" disabled selected>Selecione setor</option>
-                {% for s in setores %}
-                    {% if s != setor %}
-                        <option value="{{ s }}">{{ s }}</option>
-                    {% endif %}
-                {% endfor %}
-            </select>
-        </form>
-    </div>
-</td>
+        <div class="dropdown-encaminhar" style="display:inline-block; position: relative;">
+            <button type="button" class="btn btn-warning btn-encaminhar" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar</button>
+            <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position: absolute; top: 100%; left: 0; background: #161b22; border: 1px solid #30363d; padding: 8px; border-radius: 5px; z-index: 10;">
+                <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
+                    <option value="" disabled selected>Selecione setor</option>
+                    {% for s in setores %}
+                        {% if s != setor %}
+                            <option value="{{ s }}">{{ s }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </td>
 </tr>
 {% endfor %}
 
@@ -237,7 +163,8 @@
     <td>{{ protocolo }}</td>
     <td>{{ tipologia }}</td>
     <td>{{ municipio }}</td>
-    <td class="td-acoes">
+    <td>
+        <a href="{{ url_for('diretor_tecnico.visualizar_processo', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Visualizar</a>
         <a href="{{ url_for('diretor_tecnico.preencher_tecnico', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Complementar</a>
 
         {% if situacao_analise == "FINALIZADA" %}
@@ -304,6 +231,3 @@ document.addEventListener('click', function(event) {
 });
 </script>
 {% endblock %}
-
-
-

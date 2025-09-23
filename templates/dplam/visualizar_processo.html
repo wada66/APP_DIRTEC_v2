@@ -3,6 +3,64 @@
 {% block title %}Visualizar Processo {{ campos.Protocolo }}{% endblock %}
 
 {% block content %}
+<style>
+  /* Estilo do título */
+  h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 700;
+  }
+
+  /* Estilo da tabela */
+  table {
+    width: 100%;
+    max-width: 600px;
+    margin: 70px auto 30px auto; /* espaço em cima para o link voltar */
+    border-collapse: collapse;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  th, td {
+    padding: 14px 20px;
+    text-align: left;
+    border-bottom: 1px solid #e3e6ea;
+  }
+  th {
+    background-color: #3498db;
+    color: white;
+    font-weight: 600;
+    width: 40%;
+    user-select: none;
+  }
+  td {
+    color: #555;
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* Posiciona link voltar no canto superior esquerdo */
+  .voltar-link {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
+  }
+  .voltar-link:hover {
+    color: #1d6fa5;
+    text-decoration: underline;
+  }
+</style>
+
+<!-- Link voltar no topo esquerdo -->
+<a href="{{ url_for('dplam.ambiente') }}" class="voltar-link">Voltar</a>
+
 <h1>Visualizar Processo - Protocolo {{ campos.Protocolo }}</h1>
 
 <table>
@@ -15,6 +73,5 @@
     {% endfor %}
   </tbody>
 </table>
-
-<p><a href="{{ url_for('dplam.ambiente') }}">Voltar</a></p>
 {% endblock %}
+
