@@ -133,14 +133,14 @@
 
         <label>
             Solicitação do Requerente:
-            <select id="solicitacao_resposta" name="solicitacao_resposta" {% if processo.solicitacao_resposta %}disabled{% endif %}>
+            <select id="solicitacao_requerente" name="solicitacao_requerente" {% if processo.solicitacao_requerente %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
                 {% for opcao in solicitacao_resposta %}
-                <option value="{{ opcao }}" {% if processo.solicitacao_resposta == opcao %}selected{% endif %}>{{ opcao }}</option>
+                <option value="{{ opcao }}" {% if processo.solicitacao_requerente == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if processo.solicitacao_resposta %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="solicitacao_resposta" />Editar</span>
+            {% if processo.solicitacao_requerente %}
+            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="solicitacao_requerente" />Editar</span>
             {% endif %}
         </label>
 
@@ -185,14 +185,14 @@
 
         <label>
             Município:
-            <select id="municipio" name="municipio" {% if municipio.nome_municipio %}disabled{% endif %}>
+            <select id="municipio_nome" name="municipio_nome" {% if imovel_municipio.municipio_nome %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
                 {% for opcao in municipio %}
-                <option value="{{ opcao }}" {% if municipio.nome_municipio == opcao %}selected{% endif %}>{{ opcao }}</option>
+                <option value="{{ opcao }}" {% if imovel_municipio.municipio_nome == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if municipio.nome_municipio %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="municipio" />Editar</span>
+            {% if imovel_municipio.municipio_nome %}
+            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="municipio_nome" />Editar</span>
             {% endif %}
         </label>
         <div class="campo-condicional" id="zona-urbana-container" style="{{ 'display:block;' if processo.zona_urbana else 'display:none;' }}">
@@ -241,14 +241,14 @@
         <div class="campo-condicional" id="localizacao-detalhes" style="{{ 'display:block;' if processo.situacao_localizacao == 'LOCALIZADA' else 'display:none;' }}">
             <label>
                 Responsável pela Localização:
-                <select id="responsavel_localizacao_cpf" name="responsavel_localizacao_cpf" {% if processo.responsavel_localizacao_cpf %}disabled{% endif %}>
+                <select id="responsavel_localizacao" name="responsavel_localizacao" {% if processo.responsavel_localizacao %}disabled{% endif %}>
                     <option value="">--Selecione--</option>
                     {% for cpf, nome, setor in tecnico %}
-                    <option value="{{ cpf }}" {% if processo.responsavel_localizacao_cpf == cpf %}selected{% endif %}>{{ nome }}</option>
+                    <option value="{{ cpf }}" {% if processo.responsavel_localizacao == cpf %}selected{% endif %}>{{ nome }}</option>
                     {% endfor %}
                 </select>
-                {% if processo.responsavel_localizacao_cpf %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="responsavel_localizacao_cpf" />Editar</span>
+                {% if processo.responsavel_localizacao %}
+                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="responsavel_localizacao" />Editar</span>
                 {% endif %}
             </label>
 
@@ -310,12 +310,12 @@
 
         <label>
             Tipo de Requerente:
-            <select id="tipo_de_requerente" name="tipo_de_requerente" {% if processo.tipo_de_requerente %}disabled{% endif %}>
+            <select id="tipo_requerente" name="tipo_requerente" {% if processo.tipo_requerente %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
-                <option value="PESSOA FÍSICA" {% if processo.tipo_de_requerente == 'PESSOA FÍSICA' %}selected{% endif %}>Pessoa Física</option>
-                <option value="PESSOA JURÍDICA" {% if processo.tipo_de_requerente == 'PESSOA JURÍDICA' %}selected{% endif %}>Pessoa Jurídica</option>
+                <option value="PESSOA FÍSICA" {% if processo.tipo_requerente == 'PESSOA FÍSICA' %}selected{% endif %}>Pessoa Física</option>
+                <option value="PESSOA JURÍDICA" {% if processo.tipo_requerente == 'PESSOA JURÍDICA' %}selected{% endif %}>Pessoa Jurídica</option>
             </select>
-            {% if processo.tipo_de_requerente %}
+            {% if processo.tipo_requerente %}
             <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="tipo_de_requerente" />Editar</span>
             {% endif %}
         </label>

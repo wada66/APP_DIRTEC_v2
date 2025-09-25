@@ -113,13 +113,13 @@ def preencher_tecnico(protocolo):
     if request.method == 'POST':
         formulario = request.form.to_dict(flat=True)
 
-        # Campos para atualizar do formulário
+        # Campos que serão atualizados enviados do formulário
         campos_processo = [
-            "observacoes", "numero_pasta", "solicitacao_resposta", "resposta_departamento",
+            "observacoes", "numero_pasta", "solicitacao_requerente", "resposta_departamento",
             "tramitacao", "tipologia", "municipio", "situacao_localizacao",
-            "responsavel_localizacao_cpf", "inicio_localizacao", "fim_localizacao",
+            "responsavel_localizacao", "inicio_localizacao", "fim_localizacao",
             "nome_ou_loteamento_do_condominio_a_ser_aprovado", "interesse_social",
-            "lei_inclui_perimetro_urbano", "nome_requerente", "tipo_de_requerente",
+            "lei_inclui_perimetro_urbano", "nome_requerente", "tipo_requerente",
             "cpf_requerente", "cnpj_requerente", "nome_proprietario", "cpf_cnpj_proprietario",
             "matricula_imovel", "prioridade", "complexidade", "possui_apa", "apa", "zona_apa",
             "possui_utp", "utp", "zona_utp", "possui_manancial", "tipo_manancial",
@@ -127,10 +127,10 @@ def preencher_tecnico(protocolo):
             "possui_diretriz", "sistema_viario"
         ]
 
-        # Normaliza checkbox booleanos (checkbox envia 'on' se marcado)
         def to_bool(val):
             return val == 'on' or val == 'true' or val == '1'
 
+        # Normaliza checkbox para booleano real
         for chk in ["interesse_social", "lei_inclui_perimetro_urbano",
                     "possui_apa", "possui_utp", "possui_manancial",
                     "possui_curva", "possui_faixa", "possui_diretriz"]:
@@ -139,39 +139,39 @@ def preencher_tecnico(protocolo):
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
-                    # Atualizar processo
+                    # Atualizar tabela processo
                     campos_sql = ", ".join(f"{campo} = %s" for campo in campos_processo)
                     valores = [formulario.get(campo) for campo in campos_processo]
-                    valores.append(protocolo)
+                    valores.append(protocolo)  # condição WHERE
 
-                    sql_atualizar_processo = f"UPDATE processo SET {campos_sql} WHERE protocolo = %s"
-                    cur.execute(sql_atualizar_processo, valores)
+                    sql_atualizar = f"UPDATE processo SET {campos_sql} WHERE protocolo = %s"
+                    cur.execute(sql_atualizar, valores)
 
-                    # Atualizar análise - consideramos que só atualiza situacao_analise
+                    # Atualizar tabela analise (ex: situacao_analise e responsavel_analise)
                     situacao_analise = formulario.get("situacao_analise", "NÃO FINALIZADA")
                     cur.execute("""
-                        UPDATE analise SET situacao_analise = %s, responsavel_analise = %s
+                        UPDATE analise
+                        SET situacao_analise = %s, responsavel_analise = %s
                         WHERE processo_protocolo = %s
                     """, (situacao_analise, cpf_tecnico, protocolo))
 
-                    conn.commit()
+                conn.commit()
 
             return redirect(url_for("dplam.ambiente"))
 
         except Exception as e:
-            # Trate erros conforme seu padrão
             return f"Erro ao atualizar processo: {e}", 500
 
-    # GET: carregar dados para preencher formulário
+    # GET - recuperar dados do banco para preencher formulário
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT p.protocolo, p.observacoes, p.pasta_numero, p.solicitacao_requerente, p.resposta_departamento,
                        p.tramitacao, p.tipologia, im.municipio_nome, p.situacao_localizacao,
-                       a.responsavel_analise, p.inicio_localizacao, p.fim_localizacao,
+                       p.responsavel_localizacao , p.inicio_localizacao, p.fim_localizacao,
                        p.nome_ou_loteamento_do_condominio_a_ser_aprovado, p.interesse_social,
-                       p.requerente, r.tipo_requerente, r.cpf_cnpj_requerente, pi.proprietario_cpf_cnpj,
-                       pr.cpf_cnpj_proprietario, p.imovel_matricula, a.prioridade, a.complexidade,
+                       r.nome_requerente , r.tipo_requerente, r.cpf_cnpj_requerente, pi.proprietario_cpf_cnpj,
+                       p.imovel_matricula, a.prioridade, a.complexidade,
                        za.apa, i.zona_apa, zu.utp, i.zona_utp,
                        i.curva_inundacao,
                        i.faixa_servidao, i.classificacao_viaria,
@@ -188,6 +188,7 @@ def preencher_tecnico(protocolo):
                 WHERE p.protocolo = %s;
 
             """, (protocolo,))
+
             row = cur.fetchone()
             if not row:
                 return "Processo não encontrado", 404
@@ -195,7 +196,7 @@ def preencher_tecnico(protocolo):
             cols = [desc[0] for desc in cur.description]
             processo = dict(zip(cols, row))
 
-    # Buscar listas para selects (exemplo reduzido, ajustar conforme seu banco)
+    # Buscar listas para selects (pode colocar em função para reutilizar)
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT tipo_solicitacao_resposta FROM solicitacao_resposta")
