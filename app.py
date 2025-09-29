@@ -9,6 +9,7 @@ from dig import bp as dig_bp
 from dcot import bp as dcot_bp
 from dplam import bp as dplam_bp
 from diretor_tecnico import bp as diretor_tecnico_bp
+from relatorio import gerar_pdf
 
 load_dotenv()
 
@@ -37,6 +38,7 @@ app.register_blueprint(dcot_bp, url_prefix='/dcot')
 app.register_blueprint(dplam_bp, url_prefix='/dplam')
 app.register_blueprint(diretor_tecnico_bp, url_prefix='/diretor-tecnico')
 
+
 def calcular_dias_uteis(inicio_str, fim_str):
     if not inicio_str or not fim_str:
         return None
@@ -54,7 +56,6 @@ SETOR_TO_BLUEPRINT = {
     "DPLAM": "dplam",
     "PRESIDENTE_DTEC": "diretor_tecnico"
 }
-
 
 @app.route("/")
 def raiz():
@@ -128,8 +129,6 @@ def index():
                 "manancial": manancial
             }
 
-            caminho_pdf = session.get("caminho_pdf")
-            protocolo_pdf = session.get("protocolo_pdf")
 
     return render_template(
         "formulario.html",
@@ -147,8 +146,6 @@ def index():
         complexidade=complexidade,
         setor=setor,
         enums=enums,
-        caminho_pdf=caminho_pdf,
-        protocolo_pdf=protocolo_pdf
     )
 
 
@@ -210,9 +207,6 @@ def inserir():
                 cur.execute("SELECT id_zona_utp FROM zona_utp WHERE nome_zona_utp = %s", (zona_utp_nome,))
                 zona_utp_id = cur.fetchone()
                 zona_utp_id = zona_utp_id[0] if zona_utp_id else None
-
-                print("zona_apa_id:", zona_apa_id, type(zona_apa_id))
-                print("zona_utp_id:", zona_utp_id, type(zona_utp_id))
 
                 
                 # Inserção no imóvel usando os ids obtidos
@@ -431,15 +425,61 @@ def inserir():
                             formulario.get("protocolo"),
                         ),
                     )
+                protocolo = formulario.get("protocolo")
 
+                if acao_finalizar:
+                        nome_arquivo = f"{protocolo}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+                        caminho_pdf = os.path.join("PDFS", nome_arquivo)
+                        os.makedirs("PDFS", exist_ok=True)
+
+                        try:
+                                gerar_pdf(formulario, caminho_pdf)
+                                print(f"PDF gerado com sucesso: {caminho_pdf}")
+                        except Exception as e_pdf:
+                                print(f"Erro ao gerar PDF: {e_pdf}")
+                                return "Erro ao gerar PDF", 500
+
+                        try:
+                            cur.execute("""
+                            INSERT INTO pdf_gerados (processo_protocolo, setor_nome, caminho_pdf, data_geracao)
+                            VALUES (%s, %s, %s, %s)
+                        """, (protocolo, session.get("setor"), caminho_pdf, datetime.now()))
+                            conn.commit()  # Commit explícito para salvar alterações
+                            print(f"Registro PDF inserido no banco para protocolo {protocolo}")
+                        except Exception as e_db:
+                                print(f"Erro ao registrar PDF no banco: {e_db}")
+                                return "Erro ao salvar registro do PDF", 500
+
+                        if acao_encaminhar:
+                            if not setor_destino:
+                                return "Setor destino não informado", 400
+                            blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_destino)
+                            if not blueprint_redirect:
+                                return "Setor inválido para redirecionamento", 400
+                            return redirect(url_for(f"{blueprint_redirect}.ambiente"))
+
+                        if acao_salvar or acao_finalizar:
+                            return redirect(url_for("index"))
+
+                        return "Ação desconhecida", 400
+
+    except Exception as e:
+            import traceback
+            print("Erro completo:")
+            traceback.print_exc()
+            print("Dados do formulário:")
+            for k, v in formulario.items():
+                print(f"{k} = {v} ({len(v) if v else 0})")
+                return f"Erro ao inserir/atualizar dados: {e}", 500
+    
                 # Fluxo encaminhar: atualizar setor e responsável, inserir histórico
-                if acao_encaminhar:
-                    if not setor_destino:
-                        return "Setor destino não informado", 400
-                    blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_destino)
-                else:
-                    setor_sessao = session.get("setor")
-                    blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_sessao)
+            if acao_encaminhar:
+                if not setor_destino:
+                    return "Setor destino não informado", 400
+                blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_destino)
+            else:
+                setor_sessao = session.get("setor")
+                blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_sessao)
 
                 if not blueprint_redirect:
                     return "Setor inválido para redirecionamento", 400
@@ -477,23 +517,6 @@ def inserir():
                         ),
                     )
 
-
-                    # Redirecionar após as ações:
-            if acao_encaminhar or acao_finalizar or acao_salvar:
-                    return redirect(url_for("index"))
-            else:
-                    return "Ação desconhecida", 400
-                
-        return redirect(url_for("index"))
-
-    except Exception as e:
-            import traceback
-            print("Erro completo:")
-            traceback.print_exc()
-            print("Dados do formulário:")
-            for k, v in formulario.items():
-                print(f"{k} = {v} ({len(v) if v else 0})")
-            return f"Erro ao inserir/atualizar dados: {e}", 500@app.route("/inserir", methods=["POST"])
 def inserir():
     formulario = request.form.to_dict(flat=True)
 
@@ -897,16 +920,12 @@ def get_zonas_utp(utp):
     conn.close()
     return jsonify(dados)
 
-@app.route('/baixar_pdf')
-def baixar_pdf():
-    caminho_pdf = session.get("caminho_pdf")
-    if caminho_pdf and os.path.exists(caminho_pdf):
-        try:
-            return send_file(caminho_pdf, as_attachment=True)
-        except FileNotFoundError:
-            return "Arquivo PDF não encontrado", 404
-    else:
-        abort(404)
+from flask import send_from_directory
+
+@app.route('/baixar_pdf/<filename>')
+def baixar_pdf(filename):
+    return send_from_directory('PDFS', filename, as_attachment=True)
+
         
 @app.route("/setor", methods=["GET", "POST"])
 def escolher_setor():

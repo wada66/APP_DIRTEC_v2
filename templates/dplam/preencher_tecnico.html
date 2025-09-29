@@ -123,9 +123,9 @@
 
         <label>
             Número da Pasta:
-            <input type="text" id="numero_pasta" name="numero_pasta" value="{{ processo.numero_pasta or '' }}" {% if processo.numero_pasta %}readonly{% endif %}/>
-            {% if processo.numero_pasta %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="numero_pasta" />Editar</span>
+            <input type="text" id="pasta_numero" name="pasta_numero" value="{{ processo.pasta_numero or '' }}" {% if processo.pasta_numero %}readonly{% endif %}/>
+            {% if processo.pasta_numero %}
+            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="pasta_numero" />Editar</span>
             {% endif %}
         </label>
 
@@ -185,14 +185,14 @@
 
         <label>
             Município:
-            <select id="municipio_nome" name="municipio_nome" {% if imovel_municipio.municipio_nome %}disabled{% endif %}>
+            <select id="municipio" name="municipio" {% if municipio.nome_municipio %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
                 {% for opcao in municipio %}
-                <option value="{{ opcao }}" {% if imovel_municipio.municipio_nome == opcao %}selected{% endif %}>{{ opcao }}</option>
+                <option value="{{ opcao }}" {% if municipio.nome_municipio == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if imovel_municipio.municipio_nome %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="municipio_nome" />Editar</span>
+            {% if municipio.nome_municipio %}
+            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="municipio" />Editar</span>
             {% endif %}
         </label>
         <div class="campo-condicional" id="zona-urbana-container" style="{{ 'display:block;' if processo.zona_urbana else 'display:none;' }}">
@@ -359,9 +359,9 @@
 
         <label>
             Matrícula do Imóvel:
-            <input type="text" id="matricula_imovel" name="matricula_imovel" value="{{ processo.matricula_imovel or '' }}" {% if processo.matricula_imovel %}readonly{% endif %} />
-            {% if processo.matricula_imovel %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="matricula_imovel" />Editar</span>
+            <input type="text" id="imovel_matricula" name="imovel_matricula" value="{{ processo.imovel_matricula or '' }}" {% if processo.imovel_matricula %}readonly{% endif %} />
+            {% if processo.imovel_matricula %}
+            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="imovel_matricula" />Editar</span>
             {% endif %}
         </label>
 
