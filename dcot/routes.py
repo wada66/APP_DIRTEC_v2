@@ -1,3 +1,4 @@
+import os
 from flask import render_template, session, redirect, url_for, request
 from . import bp
 from db import get_db_connection
@@ -34,6 +35,21 @@ def ambiente():
             """, (cpf_tecnico,))
             meus = cur.fetchall()
 
+ # Montar lista de protocolos para buscar PDFs
+            protocolos = [p[0] for p in meus]
+
+            pdfs_por_protocolo = {}
+            if protocolos:
+                cur.execute("""
+                    SELECT processo_protocolo, caminho_pdf
+                    FROM pdf_gerados
+                    WHERE processo_protocolo = ANY(%s)
+                    ORDER BY data_geracao DESC
+                """, (protocolos,))
+                for processo_protocolo, caminho_pdf in cur.fetchall():
+                    if processo_protocolo not in pdfs_por_protocolo:
+                        pdfs_por_protocolo[processo_protocolo] = os.path.basename(caminho_pdf)
+
             cur.execute("SELECT nome_setor FROM setor ORDER BY nome_setor")
             setores = [row[0] for row in cur.fetchall()]
             
@@ -43,7 +59,8 @@ def ambiente():
         meus=meus,
         setores=setores,
         setor=setor_nome,
-        nome=session.get("nome")
+        nome=session.get("nome"),
+        pdfs_por_protocolo=pdfs_por_protocolo
     )
 
 
