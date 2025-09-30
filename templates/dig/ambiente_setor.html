@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Painel do Técnico - DIG{% endblock %}
+{% block title %}Painel do Técnico{% endblock %}
 
 {% block content %}
 <style>
@@ -23,7 +23,7 @@
 
     /* Container centralizado das tabelas */
     .table-container {
-        max-width: 900px;
+        max-width: 1100px;
         margin: 20px auto;
         background: #161b22;
         padding: 15px;
@@ -158,37 +158,42 @@
         <th>Município</th>
         <th>Ações</th>
     </tr>
-    {% for protocolo, tipologia, municipio, situacao_analise in meus %}
+{% for protocolo, tipologia, municipio, situacao_analise in meus %}
 <tr>
-    <td>{{ protocolo }}</td>
-    <td>{{ tipologia }}</td>
-    <td>{{ municipio }}</td>
-    <td>
-        <a href="{{ url_for('dig.visualizar_processo', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Visualizar</a>
-        <a href="{{ url_for('dig.preencher_tecnico', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Complementar</a>
+  <td>{{ protocolo }}</td>
+  <td>{{ tipologia }}</td>
+  <td>{{ municipio }}</td>
+  <td>
+    <a href="{{ url_for('dig.visualizar_processo', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Visualizar</a>
+    <a href="{{ url_for('dig.preencher_tecnico', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Complementar</a>
 
-        {% if situacao_analise == "FINALIZADA" %}
-            <span style="background-color: red; color: white; padding: 6px 10px; border-radius: 5px; margin-left: 5px; font-weight: bold;">FINALIZADA</span>
-        {% endif %}
+    {% if situacao_analise == "FINALIZADA" %}
+      <span style="background-color: red; color: white; padding: 6px 10px; border-radius: 5px; margin-left: 5px; font-weight: bold;">FINALIZADA</span>
+    {% endif %}
 
-        <div style="display:inline-block; position:relative; margin-left: 10px;">
-            <button type="button" class="btn btn-primary" onclick="toggleDropdown('{{ protocolo }}')">
-                Encaminhar
-            </button>
-            <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position:absolute; top:100%; left:0; background:#161b22; padding:10px; border-radius:5px; box-shadow:0 0 5px #000; z-index:10;">
-                <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')" style="margin-right: 5px;">
-                    <option value="" disabled selected>Selecione setor</option>
-                    {% for s in setores %}
-                        {% if s != setor %}
-                            <option value="{{ s }}">{{ s }}</option>
-                        {% endif %}
-                    {% endfor %}
-                </select>
-            </form>
-        </div>
-    </td>
+    {% if pdfs_por_protocolo[protocolo] %}
+      <a href="{{ url_for('baixar_pdf', filename=pdfs_por_protocolo[protocolo]) }}" class="btn btn-primary" style="margin-left: 10px;" target="_blank">Baixar Relatório PDF</a>
+    {% endif %}
+
+    <div style="display:inline-block; position:relative; margin-left: 10px;">
+      <button type="button" class="btn btn-primary" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar</button>
+      <form id="form-encaminhar-{{ protocolo }}" method="get"
+        style="display:none; position:absolute; top:100%; left:0; background:#161b22; padding:10px; border-radius:5px; box-shadow:0 0 5px #000; z-index:10;">
+        <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')" style="margin-right: 5px;">
+          <option value="" disabled selected>Selecione setor</option>
+          {% for s in setores %}
+            {% if s != setor %}
+              <option value="{{ s }}">{{ s }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+
+  </td>
 </tr>
-    {% endfor %}
+{% endfor %}
+
 </table>
 {% else %}
 <p>Você ainda não capturou nenhum processo.</p>
