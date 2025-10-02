@@ -14,6 +14,15 @@ def ambiente():
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
+            
+             # Buscar nome do técnico pelo CPF
+            cur.execute("SELECT nome_tecnico FROM tecnico WHERE cpf_tecnico = %s", (cpf_tecnico,))
+            row = cur.fetchone()
+            if row:
+                nome_tecnico = row[0]
+            else:
+                nome_tecnico = "Técnico"
+                
             # Processos disponíveis: do setor, SEM responsável na análise
             cur.execute("""
                 SELECT p.protocolo, p.tipologia, im.municipio_nome
@@ -35,6 +44,8 @@ def ambiente():
                 ORDER BY p.protocolo DESC
             """, (cpf_tecnico,))
             meus = cur.fetchall()
+            
+            
 
  # Montar lista de protocolos para buscar PDFs
             protocolos = [p[0] for p in meus]
@@ -60,7 +71,7 @@ def ambiente():
         meus=meus,
         setores=setores,
         setor=setor_nome,
-        nome=session.get("nome"),
+        nome_tecnico=nome_tecnico,
         pdfs_por_protocolo=pdfs_por_protocolo
     )
 

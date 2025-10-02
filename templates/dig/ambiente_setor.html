@@ -7,12 +7,12 @@
     body {
         font-family: Arial, sans-serif;
         margin: 20px;
-        background-color: #0d1117;
-        color: #00bfff;
+        background-color: #f5f5f5;
+        color: #333;
     }
 
     h1, h2 {
-        color: #00bfff;
+        color: #2c3e50;
         text-align: center;
     }
 
@@ -21,38 +21,56 @@
         font-size: 1.5rem;
     }
 
-    /* Container centralizado das tabelas */
+    /* Botão Voltar fixo no canto superior esquerdo */
+    .btn-voltar {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        padding: 8px 16px;
+        border-radius: 5px;
+        font-weight: bold;
+        text-decoration: none;
+        background-color: #bdc3c7;
+        color: #2c3e50;
+        transition: background-color 0.2s;
+        z-index: 1000;
+    }
+
+    .btn-voltar:hover {
+        background-color: #95a5a6;
+    }
+
     .table-container {
         max-width: 1100px;
         margin: 20px auto;
-        background: #161b22;
+        background: #ffffff;
         padding: 15px;
-        border: 1px solid #30363d;
+        border: 1px solid #ddd;
         border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }
 
     table {
         width: 100%;
         border-collapse: collapse;
-        background-color: #161b22;
+        background-color: #fff;
         margin-top: 10px;
-        color: #c9d1d9;
+        color: #333;
     }
 
     th, td {
         padding: 10px;
-        border: 1px solid #30363d;
+        border: 1px solid #ddd;
         text-align: left;
     }
 
     th {
-        background-color: #21262d;
-        color: #58a6ff;
+        background-color: #f0f4f8;
+        color: #2c3e50;
     }
 
     tr:nth-child(even) {
-        background-color: #1e242c;
+        background-color: #fafafa;
     }
 
     a.btn {
@@ -60,26 +78,35 @@
         padding: 6px 12px;
         border-radius: 5px;
         font-weight: bold;
-        background-color: #238636;
+        background-color: #2ecc71;
         color: #ffffff;
         transition: background-color 0.2s;
         margin-right: 5px;
     }
 
     a.btn:hover {
-        background-color: #2ea043;
+        background-color: #27ae60;
     }
 
     .btn-secondary {
-        background-color: #2f81f7;
+        background-color: #3498db;
     }
 
     .btn-secondary:hover {
-        background-color: #1f6feb;
+        background-color: #2980b9;
+    }
+
+    .btn-primary {
+        background-color: #2980b9;
+        color: #fff;
+    }
+
+    .btn-primary:hover {
+        background-color: #1f5f8a;
     }
 
     .badge-finalizada {
-        background-color: red;
+        background-color: #e74c3c;
         color: white;
         padding: 6px 10px;
         border-radius: 5px;
@@ -89,7 +116,7 @@
 
     p {
         text-align: center;
-        color: #8b949e;
+        color: #555;
     }
 
     @media (max-width: 768px) {
@@ -102,7 +129,33 @@
             margin-right: 0;
         }
     }
+
+    /* Estilo para dropdown de encaminhar */
+    .dropdown-encaminhar form {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: #fff;
+        border: 1px solid #ddd;
+        padding: 8px;
+        border-radius: 5px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        z-index: 10;
+        min-width: 150px;
+    }
+
+    .dropdown-encaminhar select {
+        width: 100%;
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+    }
+
 </style>
+
+<!-- Botão de voltar fixo -->
+<a href="{{ url_for('login') }}" class="btn-voltar">⬅ Voltar</a>
 
 <h1>Bem-vindo, {{ nome_tecnico }} ({{ setor }})</h1>
 
@@ -127,7 +180,7 @@
 
         <div class="dropdown-encaminhar" style="display:inline-block; position: relative;">
             <button type="button" class="btn btn-warning btn-encaminhar" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar</button>
-            <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position: absolute; top: 100%; left: 0; background: #161b22; border: 1px solid #30363d; padding: 8px; border-radius: 5px; z-index: 10;">
+            <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid #ddd; padding: 8px; border-radius: 5px; z-index: 10;">
                 <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
                     <option value="" disabled selected>Selecione setor</option>
                     {% for s in setores %}
@@ -168,7 +221,7 @@
     <a href="{{ url_for('dig.preencher_tecnico', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Complementar</a>
 
     {% if situacao_analise == "FINALIZADA" %}
-      <span style="background-color: red; color: white; padding: 6px 10px; border-radius: 5px; margin-left: 5px; font-weight: bold;">FINALIZADA</span>
+      <span class="badge-finalizada">FINALIZADA</span>
     {% endif %}
 
     {% if pdfs_por_protocolo[protocolo] %}
@@ -178,7 +231,7 @@
     <div style="display:inline-block; position:relative; margin-left: 10px;">
       <button type="button" class="btn btn-primary" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar</button>
       <form id="form-encaminhar-{{ protocolo }}" method="get"
-        style="display:none; position:absolute; top:100%; left:0; background:#161b22; padding:10px; border-radius:5px; box-shadow:0 0 5px #000; z-index:10;">
+        style="display:none; position:absolute; top:100%; left:0; background:#fff; border:1px solid #ddd; padding:10px; border-radius:5px; box-shadow:0 0 5px #ccc; z-index:10;">
         <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')" style="margin-right: 5px;">
           <option value="" disabled selected>Selecione setor</option>
           {% for s in setores %}
@@ -236,3 +289,4 @@ document.addEventListener('click', function(event) {
 });
 </script>
 {% endblock %}
+

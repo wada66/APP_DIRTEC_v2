@@ -3,35 +3,44 @@
 {% block title %}Escolha o Setor{% endblock %}
 
 {% block content %}
-<div style="
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center; 
-    align-items: center; 
-    height: 80vh; 
-    background-color: #f5f7fa; 
-    font-family: Arial, sans-serif;
-    padding: 1rem;
-">
-  <!-- Mensagem de boas-vindas -->
-  <h1 style="
-      color: #333; 
-      margin-bottom: 2rem; 
-      text-align: center;
-  ">
-    Bem-vindo! Escolha seu setor:
-  </h1>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f7fa; /* off-white */
+    }
 
-  <!-- Formulário de botões -->
-  <form method="post" style="
-      display: flex; 
-      gap: 1rem; 
-      flex-wrap: wrap; 
-      justify-content: center;
-      max-width: 600px;
-  ">
-    {% for setor in setores %}
-    <button type="submit" name="setor" value="{{ setor }}" style="
+    .setor-container {
+        display: flex; 
+        flex-direction: column; 
+        justify-content: center; 
+        align-items: center; 
+        height: 80vh;
+        padding: 1rem;
+    }
+
+    .setor-card {
+        background-color: #ffffff; /* cartão branco */
+        padding: 30px 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        max-width: 600px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .setor-card h1 {
+        color: #333;
+        margin-bottom: 2rem;
+    }
+
+    .setor-card form {
+        display: flex; 
+        gap: 1rem; 
+        flex-wrap: wrap; 
+        justify-content: center;
+    }
+
+    .setor-card button {
         background-color: #4a90e2;
         color: white;
         border: none;
@@ -40,11 +49,43 @@
         font-size: 1rem;
         cursor: pointer;
         transition: background-color 0.3s, transform 0.2s;
-    " onmouseover="this.style.backgroundColor='#357ABD'; this.style.transform='scale(1.05)'" 
-       onmouseout="this.style.backgroundColor='#4a90e2'; this.style.transform='scale(1)'">
-      {{ setor }}
-    </button>
-    {% endfor %}
-  </form>
+    }
+
+    .setor-card button:hover {
+        background-color: #357ABD;
+        transform: scale(1.05);
+    }
+
+    /* Botão Voltar fixo no canto superior esquerdo */
+    .btn-voltar {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        padding: 8px 16px;
+        border-radius: 5px;
+        font-weight: bold;
+        text-decoration: none;
+        background-color: #bdc3c7;
+        color: #2c3e50;
+        transition: background-color 0.2s;
+        z-index: 1000;
+    }
+    .btn-voltar:hover {
+        background-color: #95a5a6;
+    }
+</style>
+
+<!-- Botão de voltar -->
+<a href="{{ url_for('index') }}" class="btn-voltar">⬅ Voltar</a>
+
+<div class="setor-container">
+    <div class="setor-card">
+        <h1>Bem-vindo! Escolha seu setor:</h1>
+        <form method="post">
+            {% for setor in setores %}
+            <button type="submit" name="setor" value="{{ setor }}">{{ setor }}</button>
+            {% endfor %}
+        </form>
+    </div>
 </div>
 {% endblock %}
