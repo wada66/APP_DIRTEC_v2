@@ -183,18 +183,38 @@
             {% endif %}
         </label>
 
-        <label>
+       <label>
             Município:
-            <select id="municipio" name="municipio" {% if municipio.nome_municipio %}disabled{% endif %}>
+            <select id="municipio" name="municipio" {% if imovel_municipio %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
-                {% for opcao in municipio %}
-                <option value="{{ opcao }}" {% if municipio.nome_municipio == opcao %}selected{% endif %}>{{ opcao }}</option>
+                {% for opcao in municipios %}
+                    <option value="{{ opcao }}" {% if imovel_municipio and opcao.strip().lower() == imovel_municipio.lower() %}selected{% endif %}>
+                        {{ opcao }}
+                    </option>
+
                 {% endfor %}
             </select>
-            {% if municipio.nome_municipio %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="municipio" />Editar</span>
+            {% if imovel_municipio %}
+                <span class="edit-checkbox">
+                    <input type="checkbox" class="toggle-edit" data-target="municipio_nome" /> Editar
+                </span>
             {% endif %}
         </label>
+
+        <script>
+        document.querySelectorAll('.toggle-edit').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const targetId = this.dataset.target;
+                const select = document.getElementById(targetId);
+                if (select) {
+                    select.disabled = !this.checked;
+                }
+            });
+        });
+        </script>
+
+
+
         <div class="campo-condicional" id="zona-urbana-container" style="{{ 'display:block;' if processo.zona_urbana else 'display:none;' }}">
             <label>
                 Zona Urbana:
@@ -237,6 +257,18 @@
             <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="situacao_localizacao" />Editar</span>
             {% endif %}
         </label>
+
+        <script>
+        document.querySelectorAll('.toggle-edit').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const targetId = this.dataset.target;
+                const select = document.getElementById(targetId);
+                if (select) {
+                    select.disabled = !this.checked;
+                }
+            });
+        });
+        </script>
 
         <div class="campo-condicional" id="localizacao-detalhes" style="{{ 'display:block;' if processo.situacao_localizacao == 'LOCALIZADA' else 'display:none;' }}">
             <label>
@@ -316,7 +348,7 @@
                 <option value="PESSOA JURÍDICA" {% if processo.tipo_requerente == 'PESSOA JURÍDICA' %}selected{% endif %}>Pessoa Jurídica</option>
             </select>
             {% if processo.tipo_requerente %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="tipo_de_requerente" />Editar</span>
+            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="tipo_requerente" />Editar</span>
             {% endif %}
         </label>
 

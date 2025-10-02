@@ -255,7 +255,29 @@ def preencher_tecnico(protocolo):
 
             cur.execute("SELECT DISTINCT classificacao_metropolitana FROM sistema_viario WHERE classificacao_metropolitana IS NOT NULL")
             sistema_viario = [row[0] for row in cur.fetchall()]
+            
+            cur.execute("SELECT * FROM processo WHERE protocolo = %s", (protocolo,))
+            row = cur.fetchone()
+            if not row:
+                return "Processo não encontrado", 404
 
+            # transforma a tupla em dicionário
+            cols = [desc[0] for desc in cur.description]
+            processo = dict(zip(cols, row))
+
+            imovel_municipio = None
+
+            # verifica se o processo tem alguma referência ao imóvel
+            if processo.get("imovel_matricula"):  # agora é seguro
+                matricula = processo["imovel_matricula"]
+
+                # consulta a tabela imovel_matricula ou imovel
+                cur.execute("SELECT municipio_nome FROM imovel_municipio WHERE imovel_matricula = %s", (matricula,))
+                resultado = cur.fetchone()
+                
+                if resultado:
+                    imovel_municipio = resultado[0].strip
+                    
     return render_template(
         "dplam/preencher_tecnico.html",
         processo=processo,
@@ -273,7 +295,8 @@ def preencher_tecnico(protocolo):
         },
         curva_inundacao=curva_inundacao,
         faixa_servidao=faixa_servidao,
-        sistema_viario=sistema_viario
+        sistema_viario=sistema_viario,
+        imovel_municipio = imovel_municipio
     )
 
 

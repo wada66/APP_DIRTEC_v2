@@ -5,21 +5,46 @@
 {% block content %}
 <div style="
     display: flex; 
+    flex-direction: column; 
     justify-content: center; 
     align-items: center; 
-    height: 80vh;  /* altura da tela para centralização vertical */
+    height: 80vh; 
+    background-color: #f5f7fa; 
+    font-family: Arial, sans-serif;
+    padding: 1rem;
 ">
+  <!-- Mensagem de boas-vindas -->
+  <h1 style="
+      color: #333; 
+      margin-bottom: 2rem; 
+      text-align: center;
+  ">
+    Bem-vindo! Escolha seu setor:
+  </h1>
+
+  <!-- Formulário de botões -->
   <form method="post" style="
       display: flex; 
       gap: 1rem; 
       flex-wrap: wrap; 
       justify-content: center;
+      max-width: 600px;
   ">
     {% for setor in setores %}
-    <button type="submit" name="setor" value="{{ setor }}">{{ setor }}</button>
+    <button type="submit" name="setor" value="{{ setor }}" style="
+        background-color: #4a90e2;
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.2s;
+    " onmouseover="this.style.backgroundColor='#357ABD'; this.style.transform='scale(1.05)'" 
+       onmouseout="this.style.backgroundColor='#4a90e2'; this.style.transform='scale(1)'">
+      {{ setor }}
+    </button>
     {% endfor %}
   </form>
 </div>
 {% endblock %}
-
-
