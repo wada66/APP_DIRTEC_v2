@@ -98,7 +98,24 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(108, 117, 125, 0.2);
         }
+            /* Botão Voltar fixo no canto superior esquerdo */
+        .btn-voltar {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        padding: 8px 16px;
+        border-radius: 5px;
+        font-weight: bold;
+        text-decoration: none;
+        background-color: #bdc3c7;
+        color: #2c3e50;
+        transition: background-color 0.2s;
+        z-index: 1000;
+    }
     </style>
+
+    <!-- Botão de voltar -->
+<a href="{{ url_for('diretor_tecnico.ambiente') }}" class="btn-voltar">⬅ Voltar</a>
 </head>
 <body>
 <div class="container">

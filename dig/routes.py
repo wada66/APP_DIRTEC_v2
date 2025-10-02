@@ -80,36 +80,49 @@ def visualizar_processo(protocolo):
     cpf_tecnico = session.get("cpf_tecnico")
     if not cpf_tecnico:
         return redirect(url_for("login"))
+
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT p.protocolo, p.observacoes, p.setor_nome, p.tipologia,
-                        im.municipio_nome, a.situacao_analise, a.responsavel_analise
-                    FROM processo p
-                    JOIN imovel_municipio im ON p.imovel_matricula = im.imovel_matricula
-                    JOIN analise a ON a.processo_protocolo = p.protocolo
-                    WHERE p.protocolo = %s
-                """, (protocolo,))
-                row = cur.fetchone()
+            # Buscar dados do processo e da análise
+            cur.execute("""
+                SELECT p.protocolo, p.observacoes, p.setor_nome, p.tipologia,
+                    im.municipio_nome, a.situacao_analise, a.responsavel_analise
+                FROM processo p
+                JOIN imovel_municipio im ON p.imovel_matricula = im.imovel_matricula
+                JOIN analise a ON a.processo_protocolo = p.protocolo
+                WHERE p.protocolo = %s
+            """, (protocolo,))
+            row = cur.fetchone()
 
-                if not row:
-                    return "Processo não encontrado", 404
+            if not row:
+                return "Processo não encontrado", 404
 
-                # Mapear para dicionário com nomes e valores
-                campos = {
-                    "Protocolo": row[0],
-                    "Observações": row[1],
-                    "Setor": row[2],
-                    "Tipologia": row[3],
-                    "Município": row[4],
-                    "Situação da Análise": row[5],
-                    "Responsável pela Análise": row[6],
-                }
+            responsavel_cpf = row[6]
 
-                # Filtrar campos não preenchidos (None ou vazios)
-                campos_preenchidos = {k: v for k, v in campos.items() if v and str(v).strip()}
+            # Buscar nome do responsável pelo CPF
+            cur.execute("SELECT nome_tecnico FROM tecnico WHERE cpf_tecnico = %s", (responsavel_cpf,))
+            result = cur.fetchone()
+            if result:
+                responsavel_nome = result[0]
+            else:
+                responsavel_nome = "Desconhecido"
+
+            # Mapear para dicionário com nomes e valores
+            campos = {
+                "Protocolo": row[0],
+                "Observações": row[1],
+                "Setor": row[2],
+                "Tipologia": row[3],
+                "Município": row[4],
+                "Situação da Análise": row[5],
+                "Responsável pela Análise": responsavel_nome,  # substituindo CPF pelo nome
+            }
+
+            # Filtrar campos não preenchidos (None ou vazios)
+            campos_preenchidos = {k: v for k, v in campos.items() if v and str(v).strip()}
 
     return render_template('dig/visualizar_processo.html', campos=campos_preenchidos)
+
 
 @bp.route('/captar_processo/<string:protocolo>')
 def captar_processo(protocolo):

@@ -1,6 +1,8 @@
 from fpdf import FPDF
 from datetime import datetime
 
+from db import get_db_connection
+
 LEGENDAS_AMIGAVEIS = {
     "numero_pasta": "Número Pasta",
     "observacoes": "Observações",
@@ -21,8 +23,12 @@ LEGENDAS_AMIGAVEIS = {
     "matricula_imovel" : "Matrícula do Imóvel",
     "apa" : "APA",
     "zona_apa" : "Zona APA",
-    "utp" : "Zona UTP",
-    "zona_utp" : "Zona UTP"
+    "utp" : "UTP",
+    "zona_utp" : "Zona UTP",
+    "cnpj_requerente" : "CNPJ Requerente",
+    "cpf_requerente" : "CPF Requerente",
+    "nome_ou_loteamento_do_condominio_a_ser_aprovado" : "Condomínio a ser aprovado"
+        
     # coloque aqui outras legendas personalizadas que quiser
 }
 
@@ -30,8 +36,7 @@ LEGENDAS_AMIGAVEIS = {
 def gerar_pdf(formulario, caminho):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_margins(left=20, top=15, right=20)  # margens em mm
-    pdf.set_font("Arial", "B", 16)
+    pdf.set_margins(left=20, top=15, right=20)
     pdf.set_font("Arial", "", 12)
     data_geracao = datetime.now().strftime("%d/%m/%Y %H:%M")
     pdf.cell(0, 10, f"Gerado em: {data_geracao}", ln=True, align="C")
@@ -41,10 +46,26 @@ def gerar_pdf(formulario, caminho):
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "Relatório de Processo", ln=True, align="C")
     pdf.set_font("Arial", "", 12)
-    data_geracao = datetime.now().strftime("%d/%m/%Y %H:%M")
-    pdf.cell(0, 10, f"Gerado em: {data_geracao}", ln=True, align="C")
     pdf.ln(10)
 
+    # Substituir CPFs/CNPJs pelos nomes
+    campos_para_substituir = {
+        "responsavel_analise_cpf": "tecnico",
+        "responsavel_localizacao_cpf": "tecnico",
+    }
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            for campo, tipo in campos_para_substituir.items():
+                valor = formulario.get(campo)
+                if not valor:
+                    continue
+                if tipo == "tecnico":
+                    cur.execute("SELECT nome_tecnico FROM tecnico WHERE cpf_tecnico = %s", (valor,))
+                result = cur.fetchone()
+                formulario[campo] = result[0] if result else "Desconhecido"
+
+    # Função para adicionar linha no PDF
     def add_row(chave, valor):
         legenda = LEGENDAS_AMIGAVEIS.get(chave, chave.capitalize().replace("_", " "))
         pdf.set_font("Arial", "B", 12)
@@ -57,11 +78,12 @@ def gerar_pdf(formulario, caminho):
             add_row(chave, valor)
             pdf.ln(2)
 
+    # Rodapé
     pdf.set_y(-15)
     pdf.set_font("Arial", "I", 8)
     pdf.cell(0, 10, f"Página {pdf.page_no()}", align="C")
 
-
     pdf.output(caminho)
+
 
 
