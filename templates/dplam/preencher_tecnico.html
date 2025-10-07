@@ -203,15 +203,13 @@
 
        <label>
             Município:
-            <select id="municipio" name="municipio" {% if imovel_municipio %}disabled{% endif %}>
+            <select id="municipio" name="municipio" {% if processo.municipio %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
-                {% for opcao in municipios %}
-                    <option value="{{ opcao }}" {% if imovel_municipio and opcao.strip().lower() == imovel_municipio.lower() %}selected{% endif %}>
-                        {{ opcao }}
-                    </option>
-
+                {% for opcao in municipio %}
+                <option value="{{ opcao }}" {% if processo.municipio == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
+
             {% if imovel_municipio %}
                 <span class="edit-checkbox">
                     <input type="checkbox" class="toggle-edit" data-target="municipio_nome" /> Editar
@@ -271,6 +269,7 @@
                 <option value="{{ opcao }}" {% if processo.situacao_localizacao == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
+
             {% if processo.situacao_localizacao %}
             <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="situacao_localizacao" />Editar</span>
             {% endif %}

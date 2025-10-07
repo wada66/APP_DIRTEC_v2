@@ -258,8 +258,8 @@ def inserir():
                         responsavel_localizacao, inicio_localizacao, fim_localizacao,
                         dias_uteis_localizacao, requerente, 
                         nome_ou_loteamento_do_condominio_a_ser_aprovado, interesse_social,
-                        data_entrada
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        data_entrada, perimetro_urbano
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     formulario.get("protocolo"),
                     formulario.get("observacoes"),
@@ -279,6 +279,7 @@ def inserir():
                     formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
                     interesse_social,
                     data_entrada,
+                    lei_inclui_perimetro_urbano
                 ))
 
                 # Inserir análise 
@@ -293,8 +294,8 @@ def inserir():
                     dias_uteis_analise,
                     datetime.now().date(),
                     formulario.get("protocolo"),
-                    formulario.get("prioridade"),
-                    formulario.get("complexidade"),
+                    formulario.get("prioridade") or None,
+                    formulario.get("complexidade") or None,
                     
                 ))
        
@@ -383,8 +384,8 @@ def inserir():
                             responsavel_localizacao, inicio_localizacao, fim_localizacao,
                             dias_uteis_localizacao, requerente,
                             nome_ou_loteamento_do_condominio_a_ser_aprovado, interesse_social,
-                            data_entrada
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            data_entrada, perimetro_urbano
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         (
                             formulario.get("protocolo"),
@@ -405,6 +406,7 @@ def inserir():
                             formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
                             interesse_social,
                             data_entrada,
+                            lei_inclui_perimetro_urbano
                         ),
                     )
 

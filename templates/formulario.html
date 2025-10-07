@@ -200,7 +200,7 @@
         <label>Número da Pasta: <input type="text" name="numero_pasta"></label>
 
         <label>Solicitação do Requerente:
-            <select name="solicitacao_requerente" id= "solicitacao_requerente">
+            <select name="solicitacao_requerente" id= "solicitacao_requerente" required>
                 <option value="">--Selecione--</option>
                 {% for tipo_solicitacao_resposta in solicitacao_resposta %}
                     <option value="{{ tipo_solicitacao_resposta }}">{{ tipo_solicitacao_resposta }}</option>
@@ -209,7 +209,7 @@
         </label>
 
         <label>Resposta do Departamento:
-            <select name="resposta_departamento" id= "resposta_departamento">
+            <select name="resposta_departamento" id= "resposta_departamento" required>
                 <option value="">--Selecione--</option>
                 {% for tipo_solicitacao_resposta in solicitacao_resposta %}
                     <option value="{{ tipo_solicitacao_resposta }}">{{ tipo_solicitacao_resposta }}</option>
@@ -218,7 +218,7 @@
         </label>
 
         <label>Tramitação:
-             <select name="tramitacao" id= "tramitacao">
+             <select name="tramitacao" id= "tramitacao" required>
                 <option value="">--Selecione--</option>
                 {% for tipo_tramitacao in tramitacao %}
                     <option value="{{ tipo_tramitacao }}">{{ tipo_tramitacao }}</option>
@@ -227,7 +227,7 @@
         </label>
 
         <label>Tipologia:
-            <select name="tipologia" id= "tipologia">
+            <select name="tipologia" id= "tipologia" required>
                 <option value="">--Selecione--</option>
                 {% for nome_tipologia in tipologia %}
                     <option value="{{ nome_tipologia }}">{{ nome_tipologia }}</option>
@@ -257,7 +257,7 @@
         </div>
 
         <label>Situação da Localização:
-            <select name="situacao_localizacao" id="situacao_localizacao" required>
+            <select name="situacao_localizacao" id="situacao_localizacao">
                 <option value="">--Selecione--</option>
                 {% for opcao in situacoes_localizacao %}
                     <option value="{{ opcao }}">{{ opcao }}</option>

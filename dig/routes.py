@@ -153,7 +153,7 @@ def preencher_tecnico(protocolo):
 
         # Campos para atualizar do formulário
         campos_processo = [
-            "observacoes", "numero_pasta", "solicitacao_resposta", "resposta_departamento",
+            "observacoes", "pasta_numero", "solicitacao_requerente", "resposta_departamento",
             "tramitacao", "tipologia", "municipio", "situacao_localizacao",
             "responsavel_localizacao_cpf", "inicio_localizacao", "fim_localizacao",
             "nome_ou_loteamento_do_condominio_a_ser_aprovado", "interesse_social",

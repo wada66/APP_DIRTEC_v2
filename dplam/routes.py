@@ -158,7 +158,7 @@ def preencher_tecnico(protocolo):
             "tramitacao", "tipologia", "municipio", "situacao_localizacao",
             "responsavel_localizacao", "inicio_localizacao", "fim_localizacao",
             "nome_ou_loteamento_do_condominio_a_ser_aprovado", "interesse_social",
-            "lei_inclui_perimetro_urbano", "nome_requerente", "tipo_requerente",
+            "perimetro_urbano", "nome_requerente", "tipo_requerente",
             "cpf_requerente", "cnpj_requerente", "nome_proprietario", "cpf_cnpj_proprietario",
             "matricula_imovel", "prioridade", "complexidade", "possui_apa", "apa", "zona_apa",
             "possui_utp", "utp", "zona_utp", "possui_manancial", "tipo_manancial",
@@ -200,40 +200,6 @@ def preencher_tecnico(protocolo):
 
         except Exception as e:
             return f"Erro ao atualizar processo: {e}", 500
-
-    # GET - recuperar dados do banco para preencher formulário
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT p.protocolo, p.observacoes, p.pasta_numero, p.solicitacao_requerente, p.resposta_departamento,
-                       p.tramitacao, p.tipologia, im.municipio_nome, p.situacao_localizacao,
-                       p.responsavel_localizacao , p.inicio_localizacao, p.fim_localizacao,
-                       p.nome_ou_loteamento_do_condominio_a_ser_aprovado, p.interesse_social,
-                       r.nome_requerente , r.tipo_requerente, r.cpf_cnpj_requerente, pi.proprietario_cpf_cnpj,
-                       p.imovel_matricula, a.prioridade, a.complexidade,
-                       za.apa, i.zona_apa, zu.utp, i.zona_utp,
-                       i.curva_inundacao,
-                       i.faixa_servidao, i.classificacao_viaria,
-                       a.situacao_analise
-                FROM processo p
-                JOIN analise a ON a.processo_protocolo = p.protocolo
-                LEFT JOIN imovel_municipio im ON p.imovel_matricula = im.imovel_matricula
-                LEFT JOIN requerente r ON p.requerente = r.cpf_cnpj_requerente
-                LEFT JOIN proprietario_imovel pi ON im.imovel_matricula = pi.imovel_matricula
-                LEFT JOIN proprietario pr ON pi.proprietario_cpf_cnpj = pr.cpf_cnpj_proprietario
-                LEFT JOIN imovel i ON p.imovel_matricula = i.matricula_imovel
-                LEFT JOIN zona_apa za ON i.zona_apa = za.id_zona_apa
-                LEFT JOIN zona_utp zu ON i.zona_utp = zu.id_zona_utp
-                WHERE p.protocolo = %s;
-
-            """, (protocolo,))
-
-            row = cur.fetchone()
-            if not row:
-                return "Processo não encontrado", 404
-
-            cols = [desc[0] for desc in cur.description]
-            processo = dict(zip(cols, row))
 
     # Buscar listas para selects (pode colocar em função para reutilizar)
     with get_db_connection() as conn:
@@ -277,12 +243,56 @@ def preencher_tecnico(protocolo):
             cur.execute("SELECT DISTINCT classificacao_metropolitana FROM sistema_viario WHERE classificacao_metropolitana IS NOT NULL")
             sistema_viario = [row[0] for row in cur.fetchall()]
             
-            cur.execute("SELECT * FROM processo WHERE protocolo = %s", (protocolo,))
+             # GET - recuperar dados do banco para preencher formulário
+            cur.execute("""
+                SELECT 
+                    p.protocolo, 
+                    p.observacoes, 
+                    p.pasta_numero, 
+                    p.solicitacao_requerente, 
+                    p.resposta_departamento,
+                    p.tramitacao, 
+                    p.tipologia, 
+                    im.municipio_nome AS municipio, 
+                    p.situacao_localizacao,
+                    a.responsavel_analise, 
+                    p.inicio_localizacao, 
+                    p.fim_localizacao,
+                    p.nome_ou_loteamento_do_condominio_a_ser_aprovado, 
+                    p.interesse_social,
+                    r.nome_requerente, 
+                    r.tipo_requerente, 
+                    r.cpf_cnpj_requerente, 
+                    pr.nome_proprietario, 
+                    pr.cpf_cnpj_proprietario, 
+                    p.imovel_matricula, 
+                    a.prioridade, 
+                    a.complexidade,
+                    za.apa AS apa, 
+                    i.zona_apa, 
+                    zu.utp AS utp, 
+                    i.zona_utp,
+                    i.curva_inundacao,
+                    i.faixa_servidao, 
+                    i.classificacao_viaria,
+                    a.situacao_analise
+                FROM processo p
+                JOIN analise a ON a.processo_protocolo = p.protocolo
+                LEFT JOIN imovel_municipio im ON p.imovel_matricula = im.imovel_matricula
+                LEFT JOIN requerente r ON p.requerente = r.cpf_cnpj_requerente
+                LEFT JOIN proprietario_imovel pi ON im.imovel_matricula = pi.imovel_matricula
+                LEFT JOIN proprietario pr ON pi.proprietario_cpf_cnpj = pr.cpf_cnpj_proprietario
+                LEFT JOIN imovel i ON p.imovel_matricula = i.matricula_imovel
+                LEFT JOIN zona_apa za ON i.zona_apa = za.id_zona_apa
+                LEFT JOIN zona_utp zu ON i.zona_utp = zu.id_zona_utp
+                WHERE p.protocolo = %s;
+
+            """, (protocolo,))
+
             row = cur.fetchone()
             if not row:
                 return "Processo não encontrado", 404
 
-            # transforma a tupla em dicionário
             cols = [desc[0] for desc in cur.description]
             processo = dict(zip(cols, row))
 
