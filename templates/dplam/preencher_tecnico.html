@@ -261,17 +261,21 @@
             </label>
         </div>
 
-        <label>
-            Situação da Localização:
-            <select id="situacao_localizacao" name="situacao_localizacao" {% if processo.situacao_localizacao %}disabled{% endif %}>
+        <label>Situação da Localização:
+            <select name="situacao_localizacao" id="situacao_localizacao" 
+                    {% if processo.situacao_localizacao %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
                 {% for opcao in situacoes_localizacao %}
-                <option value="{{ opcao }}" {% if processo.situacao_localizacao == opcao %}selected{% endif %}>{{ opcao }}</option>
+                    <option value="{{ opcao }}" 
+                            {% if processo.situacao_localizacao == opcao %}selected{% endif %}>
+                        {{ opcao }}
+                    </option>
                 {% endfor %}
             </select>
-
             {% if processo.situacao_localizacao %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="situacao_localizacao" />Editar</span>
+            <span class="edit-checkbox">
+                <input type="checkbox" class="toggle-edit" data-target="situacao_localizacao" />Editar
+            </span>
             {% endif %}
         </label>
 
@@ -340,15 +344,14 @@
         <div class="checkbox-inline">
             <label>
                 Lei inclui perímetro urbano:
-                <input type="checkbox" id="lei_perimetro_urbano" name="lei_inclui_perimetro_urbano" {% if processo.lei_inclui_perimetro_urbano %}checked{% endif %} disabled />
-                {% if processo.lei_inclui_perimetro_urbano %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="lei_perimetro_urbano" />Editar</span>
+                <input type="checkbox" id="lei_inclui_perimetro_urbano" name="lei_inclui_perimetro_urbano" {% if processo.perimetro_urbano %}checked{% endif %} disabled />
+                {% if processo.perimetro_urbano %}
+                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="perimetro_urbano" />Editar</span>
                 {% endif %}
             </label>
         </div>
 
         <h2>Informações do Requerente</h2>
-
         <label>
             Nome do Requerente:
             <input type="text" id="nome_requerente" name="nome_requerente" value="{{ processo.nome_requerente or '' }}" {% if processo.nome_requerente %}readonly{% endif %} />
@@ -357,34 +360,54 @@
             {% endif %}
         </label>
 
-        <label>
-            Tipo de Requerente:
-            <select id="tipo_requerente" name="tipo_requerente" {% if processo.tipo_requerente %}disabled{% endif %}>
+        <label>Tipo de Requerente:
+            <select name="tipo_requerente" id="tipo_requerente" 
+                    {% if processo.tipo_requerente %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
-                <option value="PESSOA FÍSICA" {% if processo.tipo_requerente == 'PESSOA FÍSICA' %}selected{% endif %}>Pessoa Física</option>
-                <option value="PESSOA JURÍDICA" {% if processo.tipo_requerente == 'PESSOA JURÍDICA' %}selected{% endif %}>Pessoa Jurídica</option>
+                <option value="PESSOA FÍSICA" 
+                        {% if processo.tipo_requerente == 'PESSOA FÍSICA' %}selected{% endif %}>
+                    Pessoa Física
+                </option>
+                <option value="PESSOA JURÍDICA"
+                        {% if processo.tipo_requerente == 'PESSOA JURÍDICA' %}selected{% endif %}>
+                    Pessoa Jurídica
+                </option>
             </select>
             {% if processo.tipo_requerente %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="tipo_requerente" />Editar</span>
+            <span class="edit-checkbox">
+                <input type="checkbox" class="toggle-edit" data-target="tipo_requerente" />Editar
+            </span>
             {% endif %}
         </label>
 
-        <div class="campo-condicional" id="cpf-container" style="{{ 'display:block;' if processo.tipo_de_requerente == 'PESSOA FÍSICA' else 'display:none;' }}">
-            <label>
-                CPF:
-                <input type="text" id="cpf_requerente" name="cpf_requerente" maxlength="14" placeholder="Digite o CPF" value="{{ processo.cpf_requerente or '' }}" {% if processo.cpf_requerente %}readonly{% endif %} />
+        <!-- Campo CPF (condicional) -->
+        <div class="campo-condicional" id="cpf-container" 
+            style="display: {% if processo.tipo_requerente == 'PESSOA FÍSICA' %}block{% else %}none{% endif %};">
+            <label>CPF:
+                <input type="text" name="cpf_requerente" id="cpf_requerente" 
+                    placeholder="Digite o CPF" maxlength="14"
+                    value="{{ processo.cpf_requerente or '' }}"
+                    {% if processo.cpf_requerente %}readonly{% endif %}>
                 {% if processo.cpf_requerente %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="cpf_requerente" />Editar</span>
+                <span class="edit-checkbox">
+                    <input type="checkbox" class="toggle-edit" data-target="cpf_requerente" />Editar
+                </span>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="cnpj-container" style="{{ 'display:block;' if processo.tipo_de_requerente == 'PESSOA JURÍDICA' else 'display:none;' }}">
-            <label>
-                CNPJ:
-                <input type="text" id="cnpj_requerente" name="cnpj_requerente" maxlength="18" placeholder="Digite o CNPJ" value="{{ processo.cnpj_requerente or '' }}" {% if processo.cnpj_requerente %}readonly{% endif %} />
+        <!-- Campo CNPJ (condicional) -->
+        <div class="campo-condicional" id="cnpj-container" 
+            style="display: {% if processo.tipo_requerente == 'PESSOA JURÍDICA' %}block{% else %}none{% endif %};">
+            <label>CNPJ:
+                <input type="text" name="cnpj_requerente" id="cnpj_requerente" 
+                    placeholder="Digite o CNPJ" maxlength="18"
+                    value="{{ processo.cnpj_requerente or '' }}"
+                    {% if processo.cnpj_requerente %}readonly{% endif %}>
                 {% if processo.cnpj_requerente %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="cnpj_requerente" />Editar</span>
+                <span class="edit-checkbox">
+                    <input type="checkbox" class="toggle-edit" data-target="cnpj_requerente" />Editar
+                </span>
                 {% endif %}
             </label>
         </div>
@@ -648,6 +671,43 @@ document.querySelectorAll('.toggle-edit').forEach(function(checkbox) {
             }
         }
     });
+});
+</script>
+<!-- No final do preencher_tecnico.html, antes do </body> -->
+<script>
+// Controle de exibição CPF/CNPJ
+document.getElementById('tipo_requerente').addEventListener('change', function() {
+    const tipo = this.value;
+    document.getElementById('cpf-container').style.display = 
+        (tipo === 'PESSOA FÍSICA') ? 'block' : 'none';
+    document.getElementById('cnpj-container').style.display = 
+        (tipo === 'PESSOA JURÍDICA') ? 'block' : 'none';
+});
+
+// Máscaras
+function aplicarMascaraCPF(cpf) {
+    cpf = cpf.replace(/\D/g, '');
+    return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+}
+
+function aplicarMascaraCNPJ(cnpj) {
+    cnpj = cnpj.replace(/\D/g, '');
+    return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+}
+
+// Aplicar máscaras
+document.getElementById('cpf_requerente')?.addEventListener('input', function(e) {
+    let valor = e.target.value.replace(/\D/g, '');
+    if (valor.length <= 11) {
+        e.target.value = aplicarMascaraCPF(valor);
+    }
+});
+
+document.getElementById('cnpj_requerente')?.addEventListener('input', function(e) {
+    let valor = e.target.value.replace(/\D/g, '');
+    if (valor.length <= 14) {
+        e.target.value = aplicarMascaraCNPJ(valor);
+    }
 });
 </script>
 </body>

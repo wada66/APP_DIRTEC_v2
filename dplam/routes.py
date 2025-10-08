@@ -158,7 +158,7 @@ def preencher_tecnico(protocolo):
             "tramitacao", "tipologia", "municipio", "situacao_localizacao",
             "responsavel_localizacao", "inicio_localizacao", "fim_localizacao",
             "nome_ou_loteamento_do_condominio_a_ser_aprovado", "interesse_social",
-            "perimetro_urbano", "nome_requerente", "tipo_requerente",
+            "lei_inclui_perimetro_urbano", "nome_requerente", "tipo_requerente",
             "cpf_requerente", "cnpj_requerente", "nome_proprietario", "cpf_cnpj_proprietario",
             "matricula_imovel", "prioridade", "complexidade", "possui_apa", "apa", "zona_apa",
             "possui_utp", "utp", "zona_utp", "possui_manancial", "tipo_manancial",
@@ -255,6 +255,7 @@ def preencher_tecnico(protocolo):
                     p.tipologia, 
                     im.municipio_nome AS municipio, 
                     p.situacao_localizacao,
+                    p.responsavel_localizacao,
                     a.responsavel_analise, 
                     p.inicio_localizacao, 
                     p.fim_localizacao,
@@ -262,7 +263,18 @@ def preencher_tecnico(protocolo):
                     p.interesse_social,
                     r.nome_requerente, 
                     r.tipo_requerente, 
-                    r.cpf_cnpj_requerente, 
+                    r.cpf_cnpj_requerente,
+                    CASE 
+                        WHEN LENGTH(REPLACE(REPLACE(r.cpf_cnpj_requerente, '.', ''), '-', '')) = 11 
+                        THEN r.cpf_cnpj_requerente
+                        ELSE NULL 
+                    END AS cpf_requerente,
+        
+                    CASE 
+                        WHEN LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(r.cpf_cnpj_requerente, '.', ''), '-', ''), '/', ''), '.', '')) = 14 
+                        THEN r.cpf_cnpj_requerente
+                        ELSE NULL 
+                    END AS cnpj_requerente, 
                     pr.nome_proprietario, 
                     pr.cpf_cnpj_proprietario, 
                     p.imovel_matricula, 
@@ -275,7 +287,8 @@ def preencher_tecnico(protocolo):
                     i.curva_inundacao,
                     i.faixa_servidao, 
                     i.classificacao_viaria,
-                    a.situacao_analise
+                    a.situacao_analise,
+                    p.perimetro_urbano
                 FROM processo p
                 JOIN analise a ON a.processo_protocolo = p.protocolo
                 LEFT JOIN imovel_municipio im ON p.imovel_matricula = im.imovel_matricula
@@ -295,6 +308,7 @@ def preencher_tecnico(protocolo):
 
             cols = [desc[0] for desc in cur.description]
             processo = dict(zip(cols, row))
+            
 
             imovel_municipio = None
 
@@ -327,7 +341,8 @@ def preencher_tecnico(protocolo):
         curva_inundacao=curva_inundacao,
         faixa_servidao=faixa_servidao,
         sistema_viario=sistema_viario,
-        imovel_municipio = imovel_municipio
+        imovel_municipio = imovel_municipio,
+        situacoes_localizacao=['LOCALIZADA', 'NÃO PRECISA LOCALIZAR']
     )
 
 
