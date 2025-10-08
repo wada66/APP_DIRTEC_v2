@@ -464,17 +464,21 @@
         </label>
         <h2>Áreas Condicionais</h2>
 
+       <!-- ========== APA ========== -->
         <div>
             <label>
                 Possui APA?
-                <input type="checkbox" id="possui_apa" class="trigger-condicional toggle-edit" data-target="apa" {% if processo.possui_apa %}checked{% endif %} {% if processo.possui_apa %}disabled{% endif %}/>
-                {% if processo.possui_apa %}
+                <input type="checkbox" id="possui_apa" class="trigger-condicional toggle-edit" 
+                    data-target="apa" 
+                    {% if processo.apa %}checked{% endif %} 
+                    {% if processo.apa %}disabled{% endif %}/>
+                {% if processo.apa %}
                 <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_apa" />Editar</span>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="apa-container" style="{{ 'display:block;' if processo.possui_apa else 'display:none;' }}">
+        <div class="campo-condicional" id="apa-container" style="{{ 'display:block;' if processo.apa else 'display:none;' }}">
             <label>
                 Selecione a APA:
                 <select id="apa" name="apa" {% if processo.apa %}disabled{% endif %}>
@@ -504,17 +508,21 @@
             </label>
         </div>
 
+        <!-- ========== UTP ========== -->
         <div>
             <label>
                 Possui UTP?
-                <input type="checkbox" id="possui_utp" class="trigger-condicional toggle-edit" data-target="utp" {% if processo.possui_utp %}checked{% endif %} {% if processo.possui_utp %}disabled{% endif %}/>
-                {% if processo.possui_utp %}
+                <input type="checkbox" id="possui_utp" class="trigger-condicional toggle-edit" 
+                    data-target="utp" 
+                    {% if processo.utp %}checked{% endif %} 
+                    {% if processo.utp %}disabled{% endif %}/>
+                {% if processo.utp %}
                 <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_utp" />Editar</span>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="utp-container" style="{{ 'display:block;' if processo.possui_utp else 'display:none;' }}">
+        <div class="campo-condicional" id="utp-container" style="{{ 'display:block;' if processo.utp else 'display:none;' }}">
             <label>
                 Selecione a UTP:
                 <select id="utp" name="utp" {% if processo.utp %}disabled{% endif %}>
@@ -544,48 +552,31 @@
             </label>
         </div>
 
-        <div>
-            <label>
-                Possui Manancial?
-                <input type="checkbox" id="possui_manancial" class="trigger-condicional toggle-edit" data-target="tipo_manancial" {% if processo.possui_manancial %}checked{% endif %} {% if processo.possui_manancial %}disabled{% endif %}/>
-                {% if processo.possui_manancial %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_manancial" />Editar</span>
-                {% endif %}
-            </label>
-        </div>
-
-        <div class="campo-condicional" id="tipo-manancial-container" style="{{ 'display:block;' if processo.possui_manancial else 'display:none;' }}">
-            <label>
-                Tipo de Manancial:
-                <select id="tipo_manancial" name="tipo_manancial" {% if processo.tipo_manancial %}disabled{% endif %}>
-                    <option value="">--Selecione--</option>
-                    {% for opcao in enums.manancial %}
-                    <option value="{{ opcao }}" {% if processo.tipo_manancial == opcao %}selected{% endif %}>{{ opcao }}</option>
-                    {% endfor %}
-                </select>
-                {% if processo.tipo_manancial %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="tipo_manancial" />Editar</span>
-                {% endif %}
-            </label>
-        </div>
-
+        <!-- ========== CURVA DE INUNDAÇÃO ========== -->
         <div>
             <label>
                 Possui Curva de Inundação?
-                <input type="checkbox" id="possui_curva" class="trigger-condicional toggle-edit" data-target="curva_inundacao" {% if processo.possui_curva %}checked{% endif %} {% if processo.possui_curva %}disabled{% endif %}/>
-                {% if processo.possui_curva %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_curva" />Editar</span>
+                <input type="checkbox" id="possui_curva" class="trigger-condicional toggle-edit" 
+                    data-target="curva_inundacao" 
+                    {% if processo.curva_inundacao %}checked{% endif %} 
+                    {% if processo.curva_inundacao %}disabled{% endif %}/>
+                {% if processo.curva_inundacao %}
+                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="curva_inundacao" />Editar</span>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="curva-inundacao-container" style="{{ 'display:block;' if processo.possui_curva else 'display:none;' }}">
+        <div class="campo-condicional" id="curva-inundacao-container" style="{{ 'display:block;' if processo.curva_inundacao else 'display:none;' }}">
             <label>
                 Curva de Inundação:
                 <select id="curva_inundacao" name="curva_inundacao" {% if processo.curva_inundacao %}disabled{% endif %}>
                     <option value="">--Selecione--</option>
                     {% for opcao in curva_inundacao %}
-                    <option value="{{ opcao }}" {% if processo.curva_inundacao == opcao %}selected{% endif %}>{{ opcao }}</option>
+                        {% set opcao_limpa = opcao.replace('(', '').replace(')', '').replace('"', '') %}
+                        <option value="{{ opcao }}" 
+                                {% if processo.curva_inundacao == opcao_limpa %}selected{% endif %}>
+                            {{ opcao_limpa }}
+                        </option>
                     {% endfor %}
                 </select>
                 {% if processo.curva_inundacao %}
@@ -594,23 +585,31 @@
             </label>
         </div>
 
+        <!-- ========== FAIXA DE SERVIDÃO ========== -->
         <div>
             <label>
                 Possui Faixa de Servidão?
-                <input type="checkbox" id="possui_faixa" class="trigger-condicional toggle-edit" data-target="faixa_servidao" {% if processo.possui_faixa %}checked{% endif %} {% if processo.possui_faixa %}disabled{% endif %}/>
-                {% if processo.possui_faixa %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_faixa" />Editar</span>
+                <input type="checkbox" id="possui_faixa" class="trigger-condicional toggle-edit" 
+                    data-target="faixa_servidao" 
+                    {% if processo.faixa_servidao %}checked{% endif %} 
+                    {% if processo.faixa_servidao %}disabled{% endif %}/>
+                {% if processo.faixa_servidao %}
+                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="faixa_servidao" />Editar</span>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="faixa-servidao-container" style="{{ 'display:block;' if processo.possui_faixa else 'display:none;' }}">
+        <div class="campo-condicional" id="faixa-servidao-container" style="{{ 'display:block;' if processo.faixa_servidao else 'display:none;' }}">
             <label>
                 Faixa de Servidão:
                 <select id="faixa_servidao" name="faixa_servidao" {% if processo.faixa_servidao %}disabled{% endif %}>
                     <option value="">--Selecione--</option>
                     {% for opcao in faixa_servidao %}
-                    <option value="{{ opcao }}" {% if processo.faixa_servidao == opcao %}selected{% endif %}>{{ opcao }}</option>
+                        {% set opcao_limpa = opcao.replace('(', '').replace(')', '').replace('"', '') %}
+                        <option value="{{ opcao }}" 
+                                {% if processo.faixa_servidao == opcao_limpa %}selected{% endif %}>
+                            {{ opcao_limpa }}
+                        </option>
                     {% endfor %}
                 </select>
                 {% if processo.faixa_servidao %}
@@ -618,18 +617,22 @@
                 {% endif %}
             </label>
         </div>
-
+       
+        <!-- ========== DIRETRIZ VIÁRIA ========== -->
         <div>
             <label>
                 Possui Diretriz Viária?
-                <input type="checkbox" id="possui_diretriz" class="trigger-condicional toggle-edit" data-target="sistema_viario" {% if processo.possui_diretriz %}checked{% endif %} {% if processo.possui_diretriz %}disabled{% endif %}/>
-                {% if processo.possui_diretriz %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_diretriz" />Editar</span>
+                <input type="checkbox" id="possui_diretriz" class="trigger-condicional toggle-edit" 
+                    data-target="sistema_viario" 
+                    {% if processo.sistema_viario %}checked{% endif %} 
+                    {% if processo.sistema_viario %}disabled{% endif %}/>
+                {% if processo.sistema_viario %}
+                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="sistema_viario" />Editar</span>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="diretriz-viaria-container" style="{{ 'display:block;' if processo.possui_diretriz else 'display:none;' }}">
+        <div class="campo-condicional" id="diretriz-viaria-container" style="{{ 'display:block;' if processo.sistema_viario else 'display:none;' }}">
             <label>
                 Classificação Diretriz Viária:
                 <select id="sistema_viario" name="sistema_viario" {% if processo.sistema_viario %}disabled{% endif %}>
@@ -708,6 +711,16 @@ document.getElementById('cnpj_requerente')?.addEventListener('input', function(e
     if (valor.length <= 14) {
         e.target.value = aplicarMascaraCNPJ(valor);
     }
+});
+// Controle de exibição condicional
+document.querySelectorAll('.trigger-condicional').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const target = this.getAttribute('data-target');
+        const container = document.querySelector(`#${target}-container`);
+        if (container) {
+            container.style.display = this.checked ? 'block' : 'none';
+        }
+    });
 });
 </script>
 </body>

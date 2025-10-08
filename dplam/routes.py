@@ -160,10 +160,10 @@ def preencher_tecnico(protocolo):
             "nome_ou_loteamento_do_condominio_a_ser_aprovado", "interesse_social",
             "lei_inclui_perimetro_urbano", "nome_requerente", "tipo_requerente",
             "cpf_requerente", "cnpj_requerente", "nome_proprietario", "cpf_cnpj_proprietario",
-            "matricula_imovel", "prioridade", "complexidade", "possui_apa", "apa", "zona_apa",
+            "matricula_imovel", "prioridade", "complexidade","possui_apa", "apa", "zona_apa",
             "possui_utp", "utp", "zona_utp", "possui_manancial", "tipo_manancial",
-            "possui_curva", "curva_inundacao", "possui_faixa", "faixa_servidao",
-            "possui_diretriz", "sistema_viario"
+            "possui_curva", "curva_inundacao","possui_faixa", "faixa_servidao",
+            "sistema_viario"
         ]
 
         def to_bool(val):
@@ -231,9 +231,6 @@ def preencher_tecnico(protocolo):
             cur.execute("SELECT DISTINCT nome_utp FROM utp WHERE nome_utp IS NOT NULL")
             utp = [row[0] for row in cur.fetchall()]
 
-            cur.execute("SELECT DISTINCT manancial FROM manancial WHERE manancial IS NOT NULL")
-            manancial = [row[0] for row in cur.fetchall()]
-
             cur.execute("SELECT DISTINCT curva_inundacao FROM curva_inundacao WHERE curva_inundacao IS NOT NULL")
             curva_inundacao = [row[0] for row in cur.fetchall()]
 
@@ -286,7 +283,7 @@ def preencher_tecnico(protocolo):
                     i.zona_utp,
                     i.curva_inundacao,
                     i.faixa_servidao, 
-                    i.classificacao_viaria,
+                    i.classificacao_viaria AS sistema_viario,
                     a.situacao_analise,
                     p.perimetro_urbano
                 FROM processo p
@@ -336,7 +333,7 @@ def preencher_tecnico(protocolo):
         enums={
             'apa': apa,
             'utp': utp,
-            'manancial': manancial
+            'manancial' : ['SUPERFICIAL', 'SUBTERRÂNEA', 'SUPERFICIAL-SUBTERRÂNEA']
         },
         curva_inundacao=curva_inundacao,
         faixa_servidao=faixa_servidao,
