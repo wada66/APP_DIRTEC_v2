@@ -112,6 +112,43 @@
         transition: background-color 0.2s;
         z-index: 1000;
     }
+       
+    textarea {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        transition: var(--transition);
+        resize: vertical;
+        height: 48px; /* ← MESMA ALTURA DOS INPUTS */
+        line-height: 1.5;
+    }
+
+    textarea[readonly] {
+        background-color: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
+    }
+
+    /* E também adicionar textarea aqui: */
+    input[type="text"], select, input[type="date"], textarea {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: var(--transition);
+    }
+
+    input[readonly], select:disabled, textarea[readonly] {
+        background-color: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
+    }
     </style>
 
     <!-- Botão de voltar -->
@@ -133,9 +170,13 @@
 
         <label>
             Observações:
-            <textarea id="observacoes" name="observacoes" rows="3" {% if processo.observacoes %}readonly{% endif %}>{{ processo.observacoes or '' }}</textarea>
+            <textarea id="observacoes" name="observacoes" {% if processo.observacoes %}readonly{% endif %}>
+                {{ processo.observacoes or '' }}
+            </textarea>
             {% if processo.observacoes %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="observacoes" />Editar</span>
+            <span class="edit-checkbox">
+                <input type="checkbox" class="toggle-edit" data-target="observacoes" />Editar
+            </span>
             {% endif %}
         </label>
 
