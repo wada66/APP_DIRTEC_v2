@@ -244,35 +244,39 @@
             </select>
         </label>
 
-        <div class="campo-condicional" id="zona-urbana-container" style="display: {% if processo.municipio %}block{% else %}none{% endif %};">
+<!-- ZONA URBANA - CORRIGIDO -->
+<div class="campo-condicional" id="zona-urbana-container" style="display: {% if processo.municipio %}block{% else %}none{% endif %};">
     <label>
         Zona Urbana:
-        <select id="zona_urbana" name="zona_urbana" 
-            {% if processo.zona_urbana %}disabled{% endif %}
-            data-valor-salvo="{{ processo.zona_urbana or '' }}">
+        <select id="zona_urbana" name="zona_urbana" {% if processo.id_zona_urbana %}disabled{% endif %}>
             <option value="">--Selecione--</option>
-            {% for opcao in zonas_urbanas %}  <!-- PRÉ-CARREGUE ESTA LISTA NO BACKEND -->
-            <option value="{{ opcao }}" {% if processo.zona_urbana == opcao %}selected{% endif %}>{{ opcao }}</option>
+            {% for id_zona_urbana, sigla_zona_urbana in zonas_urbanas %}
+            <option value="{{ sigla_zona_urbana }}"
+                    {% if processo.zona_urbana == sigla_zona_urbana %}selected{% endif %}>
+                {{ sigla_zona_urbana }}
+            </option>
             {% endfor %}
         </select>
-        {% if processo.zona_urbana %}
+        {% if processo.id_zona_urbana %}
         <button type="button" class="btn-editar-congelado" id="btn-editar-zona_urbana">Editar</button>
         {% endif %}
     </label>
 </div>
 
+<!-- MACROZONA - CORRIGIDO -->
 <div class="campo-condicional" id="macrozona-container" style="display: {% if processo.municipio %}block{% else %}none{% endif %};">
     <label>
         Macrozona Municipal:
-            <select id="macrozona_municipal" name="macrozona_municipal" 
-            {% if processo.macrozona_municipal %}disabled{% endif %}
-            data-valor-salvo="{{ processo.macrozona_municipal or '' }}">
+        <select id="macrozona_municipal" name="macrozona_municipal" {% if processo.id_macrozona %}disabled{% endif %}>
             <option value="">--Selecione--</option>
-            {% for opcao in macrozonas %}  <!-- PRÉ-CARREGUE ESTA LISTA NO BACKEND -->
-            <option value="{{ opcao }}" {% if processo.macrozona_municipal == opcao %}selected{% endif %}>{{ opcao }}</option>
+            {% for id_macrozona, sigla_macrozona in macrozonas %}
+           <option value="{{ sigla_macrozona }}" 
+                    {% if processo.macrozona_municipal == sigla_macrozona %}selected{% endif %}>
+                {{ sigla_macrozona }}
+            </option>
             {% endfor %}
         </select>
-        {% if processo.macrozona_municipal %}
+        {% if processo.id_macrozona %}
         <button type="button" class="btn-editar-congelado" id="btn-editar-macrozona_municipal">Editar</button>
         {% endif %}
     </label>
@@ -608,101 +612,10 @@ function criarBotaoEditarUniversal(campoId, botaoId, textoBotao = 'Editar') {
     }
 }
 
-// ========== CARREGAMENTO DE ZONAS URBANAS E MACROZONAS ==========
-// ========== CARREGAMENTO DE ZONAS URBANAS E MACROZONAS - VERSÃO CORRIGIDA ==========
-// ========== CONTROLE SIMPLES DE EXIBIÇÃO ==========
-// ========== CARREGAMENTO CORRIGIDO PARA MUNICÍPIO PRÉ-SELECIONADO ==========
-function carregarZonasParaMunicipioExistente() {
-    console.log('🔄 Verificando município pré-selecionado...');
-    
-    const municipioSelect = document.getElementById('municipio');
-    const zonaUrbanaSelect = document.getElementById('zona_urbana');
-    const macrozonaSelect = document.getElementById('macrozona_municipal');
-    
-    if (!municipioSelect || !municipioSelect.value) {
-        console.log('ℹ️ Nenhum município pré-selecionado');
-        return;
-    }
-    
-    const municipio = municipioSelect.value;
-    console.log(`🏙️ Município já selecionado: ${municipio}`);
-    
-    // MOSTRA OS CONTAINERS (importante!)
-    const zonaUrbanaContainer = document.getElementById('zona-urbana-container');
-    const macrozonaContainer = document.getElementById('macrozona-container');
-    
-    if (zonaUrbanaContainer) zonaUrbanaContainer.style.display = 'block';
-    if (macrozonaContainer) macrozonaContainer.style.display = 'block';
-    
-    // Só carrega as opções se os selects estiverem vazios (apenas com --Selecione--)
-    const precisaCarregarZonas = zonaUrbanaSelect && zonaUrbanaSelect.options.length <= 1;
-    const precisaCarregarMacrozonas = macrozonaSelect && macrozonaSelect.options.length <= 1;
-    
-    console.log('📊 Estado dos selects:', {
-        zonasUrbanas: precisaCarregarZonas ? 'vazio - precisa carregar' : 'já tem opções',
-        macrozonas: precisaCarregarMacrozonas ? 'vazio - precisa carregar' : 'já tem opções'
-    });
-    
-    // Carrega Zonas Urbanas se necessário
-    if (precisaCarregarZonas) {
-        console.log('📥 Carregando zonas urbanas...');
-        fetch(`/get_zonas_urbanas/${encodeURIComponent(municipio)}`)
-            .then(response => response.json())
-            .then(data => {
-                console.log('✅ Zonas urbanas carregadas:', data);
-                if (zonaUrbanaSelect) {
-                    // Mantém a opção --Selecione-- e adiciona as novas
-                    data.forEach(item => {
-                        const option = new Option(item, item);
-                        zonaUrbanaSelect.appendChild(option);
-                    });
-                    
-                    // Tenta selecionar o valor salvo se existir
-                    const valorSalvo = zonaUrbanaSelect.getAttribute('data-valor-salvo') || 
-                                     "{{ processo.zona_urbana or '' }}";
-                    if (valorSalvo) {
-                        zonaUrbanaSelect.value = valorSalvo;
-                        console.log('🎯 Zona urbana selecionada:', valorSalvo);
-                    }
-                }
-            })
-            .catch(error => console.error('❌ Erro ao carregar zonas urbanas:', error));
-    }
-    
-    // Carrega Macrozonas se necessário
-    if (precisaCarregarMacrozonas) {
-        console.log('📥 Carregando macrozonas...');
-        fetch(`/get_macrozonas/${encodeURIComponent(municipio)}`)
-            .then(response => response.json())
-            .then(data => {
-                console.log('✅ Macrozonas carregadas:', data);
-                if (macrozonaSelect) {
-                    // Mantém a opção --Selecione-- e adiciona as novas
-                    data.forEach(item => {
-                        const option = new Option(item, item);
-                        macrozonaSelect.appendChild(option);
-                    });
-                    
-                    // Tenta selecionar o valor salvo se existir
-                    const valorSalvo = macrozonaSelect.getAttribute('data-valor-salvo') || 
-                                     "{{ processo.macrozona_municipal or '' }}";
-                    if (valorSalvo) {
-                        macrozonaSelect.value = valorSalvo;
-                        console.log('🎯 Macrozona selecionada:', valorSalvo);
-                    }
-                }
-            })
-            .catch(error => console.error('❌ Erro ao carregar macrozonas:', error));
-    }
-}
 
 // ========== INICIALIZAÇÃO ATUALIZADA ==========
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM Carregado - Iniciando sistema de edição...');
-    
-    setTimeout(() => {
-    carregarZonasParaMunicipioExistente();
-}, 200);
     
     // 2. Controle de exibição CPF/CNPJ
     const tipoRequerente = document.getElementById('tipo_requerente');
@@ -829,6 +742,7 @@ document.addEventListener('click', function(e) {
         }, 500);
     }
 });
+
 </script>
 </body>
 </html>

@@ -163,7 +163,7 @@ def preencher_tecnico(protocolo):
             "matricula_imovel", "prioridade", "complexidade","possui_apa", "apa", "zona_apa",
             "possui_utp", "utp", "zona_utp", "possui_manancial", "tipo_manancial",
             "possui_curva", "curva_inundacao","possui_faixa", "faixa_servidao",
-            "sistema_viario"
+            "sistema_viario", "macrozona_municipal", "zona_urbana"
         ]
 
         def to_bool(val):
@@ -240,6 +240,14 @@ def preencher_tecnico(protocolo):
             cur.execute("SELECT DISTINCT classificacao_metropolitana FROM sistema_viario WHERE classificacao_metropolitana IS NOT NULL")
             sistema_viario = [row[0] for row in cur.fetchall()]
             
+            # Junto com as outras queries de listas
+            cur.execute("SELECT id_zona_urbana, sigla_zona_urbana FROM zona_urbana")
+            zonas_urbanas = cur.fetchall()  # [(id, nome), (id, nome), ...]
+
+            cur.execute("SELECT id_macrozona, sigla_macrozona FROM macrozona_municipal")  
+            macrozonas = cur.fetchall()  # [(id, nome), (id, nome), ...]
+                    
+            
              # GET - recuperar dados do banco para preencher formulário
             cur.execute("""
                 SELECT 
@@ -285,7 +293,9 @@ def preencher_tecnico(protocolo):
                     i.faixa_servidao, 
                     i.classificacao_viaria AS sistema_viario,
                     a.situacao_analise,
-                    p.perimetro_urbano
+                    p.perimetro_urbano,
+                    zu2.sigla_zona_urbana as zona_urbana,
+                    mm.sigla_macrozona as macrozona_municipal
                 FROM processo p
                 JOIN analise a ON a.processo_protocolo = p.protocolo
                 LEFT JOIN imovel_municipio im ON p.imovel_matricula = im.imovel_matricula
@@ -295,6 +305,9 @@ def preencher_tecnico(protocolo):
                 LEFT JOIN imovel i ON p.imovel_matricula = i.matricula_imovel
                 LEFT JOIN zona_apa za ON i.zona_apa = za.id_zona_apa
                 LEFT JOIN zona_utp zu ON i.zona_utp = zu.id_zona_utp
+                LEFT JOIN imovel_zona_macrozona izm on i.matricula_imovel = izm.imovel_matricula
+                LEFT JOIN zona_urbana zu2 ON izm.zona_urbana_id = zu2.id_zona_urbana
+                LEFT JOIN macrozona_municipal mm ON izm.macrozona_id = mm.id_macrozona
                 WHERE p.protocolo = %s;
 
             """, (protocolo,))
@@ -319,7 +332,8 @@ def preencher_tecnico(protocolo):
                 
                 if resultado:
                     imovel_municipio = resultado[0].strip
-                    
+ 
+                
     return render_template(
         "dplam/preencher_tecnico.html",
         processo=processo,
@@ -339,7 +353,9 @@ def preencher_tecnico(protocolo):
         faixa_servidao=faixa_servidao,
         sistema_viario=sistema_viario,
         imovel_municipio = imovel_municipio,
-        situacoes_localizacao=['LOCALIZADA', 'NÃO PRECISA LOCALIZAR']
+        situacoes_localizacao=['LOCALIZADA', 'NÃO PRECISA LOCALIZAR'],
+        zonas_urbanas=zonas_urbanas,
+        macrozonas=macrozonas
     )
 
 

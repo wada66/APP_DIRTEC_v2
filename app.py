@@ -193,7 +193,7 @@ def inserir():
                         INSERT INTO proprietario (cpf_cnpj_proprietario, nome_proprietario)
                         VALUES (%s, %s) ON CONFLICT (cpf_cnpj_proprietario) DO NOTHING
                     """, (formulario["cpf_cnpj_proprietario"], formulario["nome_proprietario"]))
-
+                    
                 # Inserir imóvel
                 zona_apa_nome = formulario.get("zona_apa")
                 zona_utp_nome = formulario.get("zona_utp")
@@ -236,12 +236,56 @@ def inserir():
                         ON CONFLICT DO NOTHING
                     """, (formulario["matricula_imovel"], formulario["municipio"]))
 
-                # Conectar proprietário ao imóvel (tabela associativa)
-                if formulario.get("cpf_cnpj_proprietario") and formulario.get("matricula_imovel"):
+                # Depois de inserir imóvel
+                if formulario.get("matricula_imovel") and formulario.get("municipio"):
                     cur.execute("""
-                        INSERT INTO proprietario_imovel (proprietario_cpf_cnpj, imovel_matricula)
-                        VALUES (%s, %s) ON CONFLICT DO NOTHING
-                    """, (formulario["cpf_cnpj_proprietario"], formulario["matricula_imovel"]))
+                        INSERT INTO imovel_municipio (imovel_matricula, municipio_nome)
+                        VALUES (%s, %s)
+                        ON CONFLICT DO NOTHING
+                    """, (formulario["matricula_imovel"], formulario["municipio"]))
+
+                # 🆕 🆕 🆕 ADICIONE AQUI 🆕 🆕 🆕
+                # INSERIR NA TABELA PROPRIETARIO_IMOVEL
+                imovel_matricula = formulario.get("matricula_imovel")
+                proprietario_cpf_cnpj = formulario.get("cpf_cnpj_proprietario")
+
+                if imovel_matricula and proprietario_cpf_cnpj:
+                    cur.execute("""
+                        INSERT INTO proprietario_imovel (imovel_matricula, proprietario_cpf_cnpj)
+                        VALUES (%s, %s)
+                        ON CONFLICT (imovel_matricula, proprietario_cpf_cnpj) DO NOTHING
+                    """, (imovel_matricula, proprietario_cpf_cnpj))
+                    
+                sigla_zona_urbana = formulario.get("zona_urbana")
+                sigla_macrozona = formulario.get("macrozona_municipal")
+                
+
+                # Obter IDs a partir dos nomes (MESMA LÓGICA DA APA/UTP)
+                cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (sigla_zona_urbana,))
+                zona_urbana_id = cur.fetchone()
+                zona_urbana_id = zona_urbana_id[0] if zona_urbana_id else None
+
+                cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (sigla_macrozona,))
+                macrozona_id = cur.fetchone()
+                macrozona_id = macrozona_id[0] if macrozona_id else None
+
+               # Inserir na tabela associativa
+                if formulario.get("matricula_imovel") and (zona_urbana_id or macrozona_id):
+                    print(f"🎯 TENTANDO INSERT: matricula='{formulario.get('matricula_imovel')}', zona_id={zona_urbana_id}, macro_id={macrozona_id}")
+                    
+                    try:
+                        cur.execute("""
+                            INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id)
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (imovel_matricula) 
+                            DO UPDATE SET 
+                                zona_urbana_id = EXCLUDED.zona_urbana_id,
+                                macrozona_id = EXCLUDED.macrozona_id
+                        """, (formulario.get("matricula_imovel"), zona_urbana_id, macrozona_id))
+                        
+                    except Exception as e:
+                        print(f"❌ ERRO NO INSERT: {e}")
+                        conn.rollback()
 
                 # Inserir pasta
                 if formulario.get("numero_pasta"):
@@ -349,7 +393,27 @@ def inserir():
                             formulario.get("protocolo"),
                         ),
                     )
+                    
+                    sigla_zona_urbana = formulario.get("zona_urbana")
+                    sigla_macrozona = formulario.get("macrozona_municipal")
+                    
+                    cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (sigla_zona_urbana,))
+                    zona_urbana_id = cur.fetchone()
+                    zona_urbana_id = zona_urbana_id[0] if zona_urbana_id else None
 
+                    cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (sigla_macrozona,))
+                    macrozona_id = cur.fetchone()
+                    macrozona_id = macrozona_id[0] if macrozona_id else None
+                    
+                    if formulario.get("matricula_imovel") and (zona_urbana_id or macrozona_id):
+                        cur.execute("""
+                            INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id)
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (imovel_matricula) 
+                            DO UPDATE SET 
+                                zona_urbana_id = EXCLUDED.zona_urbana_id,
+                                macrozona_id = EXCLUDED.macrozona_id
+                        """, (formulario.get("matricula_imovel"), zona_urbana_id, macrozona_id))
                     # Atualizar analise conforme ação
                     if acao_finalizar:
                         situacao_analise = "FINALIZADA"
