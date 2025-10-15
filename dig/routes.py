@@ -73,8 +73,9 @@ def ambiente():
         setor=setor_nome,
         nome_tecnico=nome_tecnico,
         pdfs_por_protocolo=pdfs_por_protocolo
-    )    
-           
+    )
+
+            
 @bp.route('/visualizar_processo/<string:protocolo>')            
 def visualizar_processo(protocolo):
     cpf_tecnico = session.get("cpf_tecnico")
@@ -151,24 +152,24 @@ def preencher_tecnico(protocolo):
     if request.method == 'POST':
         formulario = request.form.to_dict(flat=True)
 
-        # Campos para atualizar do formulário
+        # Campos que serão atualizados enviados do formulário
         campos_processo = [
             "observacoes", "pasta_numero", "solicitacao_requerente", "resposta_departamento",
             "tramitacao", "tipologia", "municipio", "situacao_localizacao",
-            "responsavel_localizacao_cpf", "inicio_localizacao", "fim_localizacao",
+            "responsavel_localizacao", "inicio_localizacao", "fim_localizacao",
             "nome_ou_loteamento_do_condominio_a_ser_aprovado", "interesse_social",
-            "lei_inclui_perimetro_urbano", "nome_requerente", "tipo_de_requerente",
+            "lei_inclui_perimetro_urbano", "nome_requerente", "tipo_requerente",
             "cpf_requerente", "cnpj_requerente", "nome_proprietario", "cpf_cnpj_proprietario",
-            "matricula_imovel", "prioridade", "complexidade", "possui_apa", "apa", "zona_apa",
+            "matricula_imovel", "prioridade", "complexidade","possui_apa", "apa", "zona_apa",
             "possui_utp", "utp", "zona_utp", "possui_manancial", "tipo_manancial",
-            "possui_curva", "curva_inundacao", "possui_faixa", "faixa_servidao",
-            "possui_diretriz", "sistema_viario"
+            "possui_curva", "curva_inundacao","possui_faixa", "faixa_servidao",
+            "sistema_viario", "macrozona_municipal", "zona_urbana"
         ]
 
-        # Normaliza checkbox booleanos (checkbox envia 'on' se marcado)
         def to_bool(val):
             return val == 'on' or val == 'true' or val == '1'
 
+        # Normaliza checkbox para booleano real
         for chk in ["interesse_social", "lei_inclui_perimetro_urbano",
                     "possui_apa", "possui_utp", "possui_manancial",
                     "possui_curva", "possui_faixa", "possui_diretriz"]:
@@ -176,64 +177,191 @@ def preencher_tecnico(protocolo):
 
         try:
             with get_db_connection() as conn:
+                # 1. ATUALIZAR TABELA PROCESSO (apenas campos preenchidos no formulário)
                 with conn.cursor() as cur:
-                    # Atualizar processo
-                    campos_sql = ", ".join(f"{campo} = %s" for campo in campos_processo)
-                    valores = [formulario.get(campo) for campo in campos_processo]
-                    valores.append(protocolo)
+                    # Buscar dados atuais do processo
+                    cur.execute("SELECT * FROM processo WHERE protocolo = %s", (protocolo,))
+                    processo_atual = cur.fetchone()
+                    colunas_processo = [desc[0] for desc in cur.description]
+                    processo_dict = dict(zip(colunas_processo, processo_atual)) if processo_atual else {}
+                    
+                    # Preparar UPDATE dinâmico apenas para campos modificados
+                    campos_para_atualizar = []
+                    valores_para_atualizar = []
+                    
+                    # Campos da tabela processo que podem ser atualizados
+                    campos_processo_permitidos = [
+                        "observacoes", "pasta_numero", "solicitacao_requerente", "resposta_departamento",
+                        "tramitacao", "tipologia", "situacao_localizacao", "responsavel_localizacao", 
+                        "inicio_localizacao", "fim_localizacao", "nome_ou_loteamento_do_condominio_a_ser_aprovado", 
+                        "interesse_social", "perimetro_urbano", "matricula_imovel"
+                    ]
+                    
+                    for campo in campos_processo_permitidos:
+                        valor_formulario = formulario.get(campo)
+                        valor_atual = processo_dict.get(campo)
+                        
+                        # Só atualiza se o campo foi preenchido no formulário E é diferente do atual
+                        if valor_formulario is not None and valor_formulario != valor_atual:
+                            campos_para_atualizar.append(f"{campo} = %s")
+                            valores_para_atualizar.append(valor_formulario)
+                            print(f"📝 Campo {campo} será atualizado: '{valor_atual}' -> '{valor_formulario}'")
+                    
+                    # Executar UPDATE apenas se houver campos para atualizar
+                    if campos_para_atualizar:
+                        campos_sql = ", ".join(campos_para_atualizar)
+                        valores_para_atualizar.append(protocolo)
+                        sql_atualizar_processo = f"UPDATE processo SET {campos_sql} WHERE protocolo = %s"
+                        print(f"🔍 SQL Processo: {sql_atualizar_processo}")
+                        cur.execute(sql_atualizar_processo, valores_para_atualizar)
+                    else:
+                        print("ℹ️ Nenhum campo da tabela processo para atualizar")
 
-                    sql_atualizar_processo = f"UPDATE processo SET {campos_sql} WHERE protocolo = %s"
-                    cur.execute(sql_atualizar_processo, valores)
+                # 2. OBTER MATRÍCULA DO IMÓVEL (chave para relacionamentos)
+                matricula_imovel = formulario.get("matricula_imovel") or processo_dict.get("matricula_imovel")
+                
+                if matricula_imovel:
+                    # 3. ATUALIZAR TABELA IMOVEL (apenas campos preenchidos)
+                    with conn.cursor() as cur:
+                        # Buscar dados atuais do imóvel
+                        cur.execute("SELECT * FROM imovel WHERE matricula_imovel = %s", (matricula_imovel,))
+                        imovel_atual = cur.fetchone()
+                        imovel_dict = dict(zip([desc[0] for desc in cur.description], imovel_atual)) if imovel_atual else {}
+                        
+                        campos_imovel_para_atualizar = []
+                        valores_imovel_para_atualizar = []
+                        
+                        # Campos da tabela imovel
+                        campos_imovel = {
+                            "classificacao_viaria": formulario.get("sistema_viario"),
+                            "curva_inundacao": formulario.get("curva_inundacao"),
+                            "faixa_servidao": formulario.get("faixa_servidao")
+                        }
+                        
+                        for campo_imovel, valor_formulario in campos_imovel.items():
+                            valor_atual = imovel_dict.get(campo_imovel)
+                            if valor_formulario is not None and valor_formulario != valor_atual:
+                                campos_imovel_para_atualizar.append(f"{campo_imovel} = %s")
+                                valores_imovel_para_atualizar.append(valor_formulario)
+                        
+                        # Executar UPDATE do imóvel se houver campos para atualizar
+                        if campos_imovel_para_atualizar:
+                            campos_sql_imovel = ", ".join(campos_imovel_para_atualizar)
+                            valores_imovel_para_atualizar.append(matricula_imovel)
+                            cur.execute(f"UPDATE imovel SET {campos_sql_imovel} WHERE matricula_imovel = %s", valores_imovel_para_atualizar)
+                    
+                    # 4. ATUALIZAR IMOVEL_MUNICIPIO (apenas se município foi preenchido)
+                    municipio_formulario = formulario.get("municipio")
+                    if municipio_formulario:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO imovel_municipio (imovel_matricula, municipio_nome) 
+                                VALUES (%s, %s)
+                                ON CONFLICT (imovel_matricula) 
+                                DO UPDATE SET municipio_nome = EXCLUDED.municipio_nome
+                            """, (matricula_imovel, municipio_formulario))
+                    
+                    # 5. ATUALIZAR ZONAS URBANAS/MACROZONAS (apenas se preenchidas)
+                    zona_urbana = formulario.get("zona_urbana")
+                    macrozona_municipal = formulario.get("macrozona_municipal")
+                    
+                    if zona_urbana or macrozona_municipal:
+                        # Buscar IDs das zonas
+                        id_zona_urbana = None
+                        id_macrozona = None
+                        
+                        with conn.cursor() as cur:
+                            if zona_urbana:
+                                cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (zona_urbana,))
+                                result = cur.fetchone()
+                                id_zona_urbana = result[0] if result else None
+                            
+                            if macrozona_municipal:
+                                cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (macrozona_municipal,))
+                                result = cur.fetchone()
+                                id_macrozona = result[0] if result else None
+                        
+                        # Atualizar tabela de relacionamento
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id) 
+                                VALUES (%s, %s, %s)
+                                ON CONFLICT (imovel_matricula) 
+                                DO UPDATE SET 
+                                    zona_urbana_id = EXCLUDED.zona_urbana_id, 
+                                    macrozona_id = EXCLUDED.macrozona_id
+                            """, (matricula_imovel, id_zona_urbana, id_macrozona))
 
-                    # Atualizar análise - consideramos que só atualiza situacao_analise
+                # 6. ATUALIZAR REQUERENTE (apenas se dados foram preenchidos)
+                cpf_requerente = formulario.get("cpf_requerente")
+                cnpj_requerente = formulario.get("cnpj_requerente")
+                cpf_cnpj_requerente = cpf_requerente or cnpj_requerente
+                nome_requerente = formulario.get("nome_requerente")
+                tipo_requerente = formulario.get("tipo_requerente")
+                
+                if cpf_cnpj_requerente and nome_requerente:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            INSERT INTO requerente (cpf_cnpj_requerente, nome_requerente, tipo_requerente) 
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (cpf_cnpj_requerente) 
+                            DO UPDATE SET 
+                                nome_requerente = EXCLUDED.nome_requerente,
+                                tipo_requerente = EXCLUDED.tipo_requerente
+                        """, (cpf_cnpj_requerente, nome_requerente, tipo_requerente))
+                    
+                    # Atualizar campo 'requerente' na tabela processo
+                    with conn.cursor() as cur:
+                        cur.execute("UPDATE processo SET requerente = %s WHERE protocolo = %s", 
+                                (cpf_cnpj_requerente, protocolo))
+
+                # 7. ATUALIZAR ANALISE (apenas campos modificados)
+                with conn.cursor() as cur:
+                    # Buscar análise atual
+                    cur.execute("SELECT * FROM analise WHERE processo_protocolo = %s", (protocolo,))
+                    analise_atual = cur.fetchone()
+                    analise_dict = dict(zip([desc[0] for desc in cur.description], analise_atual)) if analise_atual else {}
+                    
+                    campos_analise_para_atualizar = []
+                    valores_analise_para_atualizar = []
+                    
+                    # Campos da análise
                     situacao_analise = formulario.get("situacao_analise", "NÃO FINALIZADA")
-                    cur.execute("""
-                        UPDATE analise SET situacao_analise = %s, responsavel_analise = %s
-                        WHERE processo_protocolo = %s
-                    """, (situacao_analise, cpf_tecnico, protocolo))
+                    prioridade = formulario.get("prioridade")
+                    complexidade = formulario.get("complexidade")
+                    
+                    if situacao_analise != analise_dict.get("situacao_analise"):
+                        campos_analise_para_atualizar.append("situacao_analise = %s")
+                        valores_analise_para_atualizar.append(situacao_analise)
+                    
+                    if prioridade and prioridade != analise_dict.get("prioridade"):
+                        campos_analise_para_atualizar.append("prioridade = %s")
+                        valores_analise_para_atualizar.append(prioridade)
+                    
+                    if complexidade and complexidade != analise_dict.get("complexidade"):
+                        campos_analise_para_atualizar.append("complexidade = %s")
+                        valores_analise_para_atualizar.append(complexidade)
+                    
+                    # Sempre atualiza o responsável
+                    campos_analise_para_atualizar.append("responsavel_analise = %s")
+                    valores_analise_para_atualizar.append(cpf_tecnico)
+                    
+                    if campos_analise_para_atualizar:
+                        campos_sql_analise = ", ".join(campos_analise_para_atualizar)
+                        valores_analise_para_atualizar.append(protocolo)
+                        cur.execute(f"UPDATE analise SET {campos_sql_analise} WHERE processo_protocolo = %s", 
+                                valores_analise_para_atualizar)
 
-                    conn.commit()
+                conn.commit()
+                print("✅ Atualização concluída com sucesso!")
 
             return redirect(url_for("dig.ambiente"))
 
         except Exception as e:
-            # Trate erros conforme seu padrão
+            print(f"❌ Erro na atualização: {e}")
             return f"Erro ao atualizar processo: {e}", 500
 
-    # GET: carregar dados para preencher formulário
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT p.protocolo, p.observacoes, p.pasta_numero, p.solicitacao_requerente, p.resposta_departamento,
-                       p.tramitacao, p.tipologia, im.municipio_nome, p.situacao_localizacao,
-                       a.responsavel_analise, p.inicio_localizacao, p.fim_localizacao,
-                       p.nome_ou_loteamento_do_condominio_a_ser_aprovado, p.interesse_social,
-                       p.requerente, r.tipo_requerente, r.cpf_cnpj_requerente, pi.proprietario_cpf_cnpj,
-                       pr.cpf_cnpj_proprietario, p.imovel_matricula, a.prioridade, a.complexidade,
-                       za.apa, i.zona_apa, zu.utp, i.zona_utp,
-                       i.curva_inundacao,
-                       i.faixa_servidao, i.classificacao_viaria,
-                       a.situacao_analise
-                FROM processo p
-                JOIN analise a ON a.processo_protocolo = p.protocolo
-                LEFT JOIN imovel_municipio im ON p.imovel_matricula = im.imovel_matricula
-                LEFT JOIN requerente r ON p.requerente = r.cpf_cnpj_requerente
-                LEFT JOIN proprietario_imovel pi ON im.imovel_matricula = pi.imovel_matricula
-                LEFT JOIN proprietario pr ON pi.proprietario_cpf_cnpj = pr.cpf_cnpj_proprietario
-                LEFT JOIN imovel i ON p.imovel_matricula = i.matricula_imovel
-                LEFT JOIN zona_apa za ON i.zona_apa = za.id_zona_apa
-                LEFT JOIN zona_utp zu ON i.zona_utp = zu.id_zona_utp
-                WHERE p.protocolo = %s;
-
-            """, (protocolo,))
-            row = cur.fetchone()
-            if not row:
-                return "Processo não encontrado", 404
-
-            cols = [desc[0] for desc in cur.description]
-            processo = dict(zip(cols, row))
-
-    # Buscar listas para selects (exemplo reduzido, ajustar conforme seu banco)
+    # Buscar listas para selects (pode colocar em função para reutilizar)
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT tipo_solicitacao_resposta FROM solicitacao_resposta")
@@ -263,9 +391,6 @@ def preencher_tecnico(protocolo):
             cur.execute("SELECT DISTINCT nome_utp FROM utp WHERE nome_utp IS NOT NULL")
             utp = [row[0] for row in cur.fetchall()]
 
-            cur.execute("SELECT DISTINCT manancial FROM manancial WHERE manancial IS NOT NULL")
-            manancial = [row[0] for row in cur.fetchall()]
-
             cur.execute("SELECT DISTINCT curva_inundacao FROM curva_inundacao WHERE curva_inundacao IS NOT NULL")
             curva_inundacao = [row[0] for row in cur.fetchall()]
 
@@ -274,7 +399,101 @@ def preencher_tecnico(protocolo):
 
             cur.execute("SELECT DISTINCT classificacao_metropolitana FROM sistema_viario WHERE classificacao_metropolitana IS NOT NULL")
             sistema_viario = [row[0] for row in cur.fetchall()]
+            
+            # Junto com as outras queries de listas
+            cur.execute("SELECT id_zona_urbana, sigla_zona_urbana FROM zona_urbana")
+            zonas_urbanas = cur.fetchall()  # [(id, nome), (id, nome), ...]
 
+            cur.execute("SELECT id_macrozona, sigla_macrozona FROM macrozona_municipal")  
+            macrozonas = cur.fetchall()  # [(id, nome), (id, nome), ...]
+                    
+            
+             # GET - recuperar dados do banco para preencher formulário
+            cur.execute("""
+                SELECT 
+                    p.protocolo, 
+                    p.observacoes, 
+                    p.pasta_numero, 
+                    p.solicitacao_requerente, 
+                    p.resposta_departamento,
+                    p.tramitacao, 
+                    p.tipologia, 
+                    im.municipio_nome AS municipio, 
+                    p.situacao_localizacao,
+                    p.responsavel_localizacao,
+                    a.responsavel_analise, 
+                    p.inicio_localizacao, 
+                    p.fim_localizacao,
+                    p.nome_ou_loteamento_do_condominio_a_ser_aprovado, 
+                    p.interesse_social,
+                    r.nome_requerente, 
+                    r.tipo_requerente, 
+                    r.cpf_cnpj_requerente,
+                    CASE 
+                        WHEN LENGTH(REPLACE(REPLACE(r.cpf_cnpj_requerente, '.', ''), '-', '')) = 11 
+                        THEN r.cpf_cnpj_requerente
+                        ELSE NULL 
+                    END AS cpf_requerente,
+        
+                    CASE 
+                        WHEN LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(r.cpf_cnpj_requerente, '.', ''), '-', ''), '/', ''), '.', '')) = 14 
+                        THEN r.cpf_cnpj_requerente
+                        ELSE NULL 
+                    END AS cnpj_requerente, 
+                    pr.nome_proprietario, 
+                    pr.cpf_cnpj_proprietario, 
+                    p.imovel_matricula, 
+                    a.prioridade, 
+                    a.complexidade,
+                    za.apa AS apa, 
+                    za.nome_zona_apa as zona_apa, 
+                    zu.utp AS utp, 
+                    zu.nome_zona_utp as zona_utp,
+                    i.curva_inundacao,
+                    i.faixa_servidao, 
+                    i.classificacao_viaria AS sistema_viario,
+                    a.situacao_analise,
+                    p.perimetro_urbano,
+                    zu2.sigla_zona_urbana as zona_urbana,
+                    mm.sigla_macrozona as macrozona_municipal
+                FROM processo p
+                JOIN analise a ON a.processo_protocolo = p.protocolo
+                LEFT JOIN imovel_municipio im ON p.imovel_matricula = im.imovel_matricula
+                LEFT JOIN requerente r ON p.requerente = r.cpf_cnpj_requerente
+                LEFT JOIN proprietario_imovel pi ON im.imovel_matricula = pi.imovel_matricula
+                LEFT JOIN proprietario pr ON pi.proprietario_cpf_cnpj = pr.cpf_cnpj_proprietario
+                LEFT JOIN imovel i ON p.imovel_matricula = i.matricula_imovel
+                LEFT JOIN zona_apa za ON i.zona_apa = za.id_zona_apa
+                LEFT JOIN zona_utp zu ON i.zona_utp = zu.id_zona_utp
+                LEFT JOIN imovel_zona_macrozona izm on i.matricula_imovel = izm.imovel_matricula
+                LEFT JOIN zona_urbana zu2 ON izm.zona_urbana_id = zu2.id_zona_urbana
+                LEFT JOIN macrozona_municipal mm ON izm.macrozona_id = mm.id_macrozona
+                WHERE p.protocolo = %s;
+
+            """, (protocolo,))
+
+            row = cur.fetchone()
+            if not row:
+                return "Processo não encontrado", 404
+
+            cols = [desc[0] for desc in cur.description]
+            processo = dict(zip(cols, row))
+            
+
+            imovel_municipio = None
+
+            # verifica se o processo tem alguma referência ao imóvel
+            if processo.get("imovel_matricula"):  # agora é seguro
+                matricula = processo["imovel_matricula"]
+
+                # consulta a tabela imovel_matricula ou imovel
+                cur.execute("SELECT municipio_nome FROM imovel_municipio WHERE imovel_matricula = %s", (matricula,))
+                resultado = cur.fetchone()
+                
+                if resultado:
+                    imovel_municipio = resultado[0].strip
+ 
+                
     return render_template(
         "dig/preencher_tecnico.html",
         processo=processo,
@@ -288,11 +507,15 @@ def preencher_tecnico(protocolo):
         enums={
             'apa': apa,
             'utp': utp,
-            'manancial': manancial
+            'manancial' : ['SUPERFICIAL', 'SUBTERRÂNEA', 'SUPERFICIAL-SUBTERRÂNEA']
         },
         curva_inundacao=curva_inundacao,
         faixa_servidao=faixa_servidao,
-        sistema_viario=sistema_viario
+        sistema_viario=sistema_viario,
+        imovel_municipio = imovel_municipio,
+        situacoes_localizacao=['LOCALIZADA', 'NÃO PRECISA LOCALIZAR'],
+        zonas_urbanas=zonas_urbanas,
+        macrozonas=macrozonas
     )
 
 
@@ -316,7 +539,5 @@ def encaminhar_processo(protocolo, setor_destino):
             """, (setor_destino, protocolo))
     return redirect(url_for("dig.ambiente"))
 
-
-    
 
 
