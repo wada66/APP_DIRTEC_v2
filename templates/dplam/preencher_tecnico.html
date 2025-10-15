@@ -716,46 +716,76 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-   // 4. Controle de exibição condicional (APA, UTP, etc.) - ATUALIZADA
+// 4. Controle de exibição condicional (APA, UTP, etc.) - VERSÃO CORRIGIDA
 document.querySelectorAll('.trigger-condicional').forEach(checkbox => {
     checkbox.addEventListener('change', function() {
         const target = this.getAttribute('data-target');
-        const container = document.getElementById(`${target}-container`);
-        const zonaContainer = document.getElementById(`zona-${target}-container`);
+        console.log(`🔘 Checkbox ${this.id} alterado para: ${this.checked}, target: ${target}`);
         
-        console.log(`🔘 Checkbox ${this.id} alterado para: ${this.checked}`);
+        // Mapeamento dos containers para cada tipo de campo
+        const mapeamentoContainers = {
+            'apa': ['apa-container', 'zona-apa-container'],
+            'utp': ['utp-container', 'zona-utp-container'],
+            'curva_inundacao': ['curva-inundacao-container'],
+            'faixa_servidao': ['faixa-servidao-container'],
+            'sistema_viario': ['diretriz-viaria-container']
+        };
         
-        if (container) {
-            container.style.display = this.checked ? 'block' : 'none';
+        const containers = mapeamentoContainers[target] || [`${target}-container`];
+        
+        // Mapeamento dos campos para limpar
+        const mapeamentoCampos = {
+            'apa': ['apa', 'zona_apa'],
+            'utp': ['utp', 'zona_utp'],
+            'curva_inundacao': ['curva_inundacao'],
+            'faixa_servidao': ['faixa_servidao'],
+            'sistema_viario': ['sistema_viario']
+        };
+        
+        const camposParaLimpar = mapeamentoCampos[target] || [target];
+        
+        if (this.checked) {
+            // SE MARCOU: Mostra todos os containers
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.style.display = 'block';
+                    console.log(`✅ Mostrando container: ${containerId}`);
+                }
+            });
+        } else {
+            // SE DESMARCOU: Esconde containers e limpa campos
+            console.log(`🧹 Desmarcado - limpando cascata para: ${target}`);
             
-            // Se desmarcou o "possui", limpa os campos dependentes
-            if (!this.checked) {
-                console.log(`🧹 Desmarcado - limpando cascata para: ${target}`);
-                
-                // Limpa o campo principal
-                const campoPrincipal = document.getElementById(target);
-                if (campoPrincipal) {
-                    campoPrincipal.value = '';
-                    console.log(`✅ Limpo campo principal: ${target}`);
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.style.display = 'none';
+                    console.log(`✅ Ocultado container: ${containerId}`);
                 }
-                
-                // Limpa o campo de zona se existir
-                const campoZona = document.getElementById(`zona_${target}`);
-                if (campoZona) {
-                    campoZona.value = '';
-                    console.log(`✅ Limpo zona: zona_${target}`);
+            });
+            
+            // Limpa todos os campos relacionados
+            camposParaLimpar.forEach(campoId => {
+                const campo = document.getElementById(campoId);
+                if (campo) {
+                    campo.value = '';
+                    console.log(`✅ Limpo campo: ${campoId}`);
+                    
+                    // Remove botões de editar se existirem
+                    const botaoEditar = document.getElementById(`btn-editar-${campoId}`);
+                    if (botaoEditar) {
+                        botaoEditar.remove();
+                        console.log(`🗑️ Removido botão: btn-editar-${campoId}`);
+                    }
                 }
-                
-                // Esconde o container da zona
-                if (zonaContainer) {
-                    zonaContainer.style.display = 'none';
-                    console.log(`✅ Ocultado container: zona-${target}-container`);
-                }
-            } else {
-                // Se marcou, mostra os containers necessários
-                if (zonaContainer) {
-                    zonaContainer.style.display = 'block';
-                }
+            });
+            
+            // Remove botão de editar do próprio checkbox "possui"
+            const botaoCheckbox = document.getElementById(`btn-editar-${this.id}`);
+            if (botaoCheckbox) {
+                botaoCheckbox.remove();
+                console.log(`🗑️ Removido botão: btn-editar-${this.id}`);
             }
         }
     });
