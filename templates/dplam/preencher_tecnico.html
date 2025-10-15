@@ -643,6 +643,7 @@ function criarBotaoEditarUniversal(campoId, botaoId, textoBotao = 'Editar') {
     }
     
     // Eventos para recongelar
+     /*
     if (campo.tagName === 'SELECT') {
         campo.addEventListener('change', congelarCampo);
     } else if (campo.type === 'checkbox') {
@@ -652,7 +653,8 @@ function criarBotaoEditarUniversal(campoId, botaoId, textoBotao = 'Editar') {
         });
     } else {
         campo.addEventListener('blur', congelarCampo);
-    }
+    } 
+    */
     
     // Estado inicial - CONGELA se estiver preenchido
     if (estaPreenchido) {

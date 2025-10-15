@@ -154,7 +154,7 @@ def preencher_tecnico(protocolo):
 
         # Campos que serão atualizados enviados do formulário
         campos_processo = [
-            "observacoes", "numero_pasta", "solicitacao_requerente", "resposta_departamento",
+            "observacoes", "pasta_numero", "solicitacao_requerente", "resposta_departamento",
             "tramitacao", "tipologia", "municipio", "situacao_localizacao",
             "responsavel_localizacao", "inicio_localizacao", "fim_localizacao",
             "nome_ou_loteamento_do_condominio_a_ser_aprovado", "interesse_social",
@@ -177,28 +177,188 @@ def preencher_tecnico(protocolo):
 
         try:
             with get_db_connection() as conn:
+                # 1. ATUALIZAR TABELA PROCESSO (apenas campos preenchidos no formulário)
                 with conn.cursor() as cur:
-                    # Atualizar tabela processo
-                    campos_sql = ", ".join(f"{campo} = %s" for campo in campos_processo)
-                    valores = [formulario.get(campo) for campo in campos_processo]
-                    valores.append(protocolo)  # condição WHERE
+                    # Buscar dados atuais do processo
+                    cur.execute("SELECT * FROM processo WHERE protocolo = %s", (protocolo,))
+                    processo_atual = cur.fetchone()
+                    colunas_processo = [desc[0] for desc in cur.description]
+                    processo_dict = dict(zip(colunas_processo, processo_atual)) if processo_atual else {}
+                    
+                    # Preparar UPDATE dinâmico apenas para campos modificados
+                    campos_para_atualizar = []
+                    valores_para_atualizar = []
+                    
+                    # Campos da tabela processo que podem ser atualizados
+                    campos_processo_permitidos = [
+                        "observacoes", "pasta_numero", "solicitacao_requerente", "resposta_departamento",
+                        "tramitacao", "tipologia", "situacao_localizacao", "responsavel_localizacao", 
+                        "inicio_localizacao", "fim_localizacao", "nome_ou_loteamento_do_condominio_a_ser_aprovado", 
+                        "interesse_social", "perimetro_urbano", "matricula_imovel"
+                    ]
+                    
+                    for campo in campos_processo_permitidos:
+                        valor_formulario = formulario.get(campo)
+                        valor_atual = processo_dict.get(campo)
+                        
+                        # Só atualiza se o campo foi preenchido no formulário E é diferente do atual
+                        if valor_formulario is not None and valor_formulario != valor_atual:
+                            campos_para_atualizar.append(f"{campo} = %s")
+                            valores_para_atualizar.append(valor_formulario)
+                            print(f"📝 Campo {campo} será atualizado: '{valor_atual}' -> '{valor_formulario}'")
+                    
+                    # Executar UPDATE apenas se houver campos para atualizar
+                    if campos_para_atualizar:
+                        campos_sql = ", ".join(campos_para_atualizar)
+                        valores_para_atualizar.append(protocolo)
+                        sql_atualizar_processo = f"UPDATE processo SET {campos_sql} WHERE protocolo = %s"
+                        print(f"🔍 SQL Processo: {sql_atualizar_processo}")
+                        cur.execute(sql_atualizar_processo, valores_para_atualizar)
+                    else:
+                        print("ℹ️ Nenhum campo da tabela processo para atualizar")
 
-                    sql_atualizar = f"UPDATE processo SET {campos_sql} WHERE protocolo = %s"
-                    cur.execute(sql_atualizar, valores)
+                # 2. OBTER MATRÍCULA DO IMÓVEL (chave para relacionamentos)
+                matricula_imovel = formulario.get("matricula_imovel") or processo_dict.get("matricula_imovel")
+                
+                if matricula_imovel:
+                    # 3. ATUALIZAR TABELA IMOVEL (apenas campos preenchidos)
+                    with conn.cursor() as cur:
+                        # Buscar dados atuais do imóvel
+                        cur.execute("SELECT * FROM imovel WHERE matricula_imovel = %s", (matricula_imovel,))
+                        imovel_atual = cur.fetchone()
+                        imovel_dict = dict(zip([desc[0] for desc in cur.description], imovel_atual)) if imovel_atual else {}
+                        
+                        campos_imovel_para_atualizar = []
+                        valores_imovel_para_atualizar = []
+                        
+                        # Campos da tabela imovel
+                        campos_imovel = {
+                            "classificacao_viaria": formulario.get("sistema_viario"),
+                            "curva_inundacao": formulario.get("curva_inundacao"),
+                            "faixa_servidao": formulario.get("faixa_servidao")
+                        }
+                        
+                        for campo_imovel, valor_formulario in campos_imovel.items():
+                            valor_atual = imovel_dict.get(campo_imovel)
+                            if valor_formulario is not None and valor_formulario != valor_atual:
+                                campos_imovel_para_atualizar.append(f"{campo_imovel} = %s")
+                                valores_imovel_para_atualizar.append(valor_formulario)
+                        
+                        # Executar UPDATE do imóvel se houver campos para atualizar
+                        if campos_imovel_para_atualizar:
+                            campos_sql_imovel = ", ".join(campos_imovel_para_atualizar)
+                            valores_imovel_para_atualizar.append(matricula_imovel)
+                            cur.execute(f"UPDATE imovel SET {campos_sql_imovel} WHERE matricula_imovel = %s", valores_imovel_para_atualizar)
+                    
+                    # 4. ATUALIZAR IMOVEL_MUNICIPIO (apenas se município foi preenchido)
+                    municipio_formulario = formulario.get("municipio")
+                    if municipio_formulario:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO imovel_municipio (imovel_matricula, municipio_nome) 
+                                VALUES (%s, %s)
+                                ON CONFLICT (imovel_matricula) 
+                                DO UPDATE SET municipio_nome = EXCLUDED.municipio_nome
+                            """, (matricula_imovel, municipio_formulario))
+                    
+                    # 5. ATUALIZAR ZONAS URBANAS/MACROZONAS (apenas se preenchidas)
+                    zona_urbana = formulario.get("zona_urbana")
+                    macrozona_municipal = formulario.get("macrozona_municipal")
+                    
+                    if zona_urbana or macrozona_municipal:
+                        # Buscar IDs das zonas
+                        id_zona_urbana = None
+                        id_macrozona = None
+                        
+                        with conn.cursor() as cur:
+                            if zona_urbana:
+                                cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (zona_urbana,))
+                                result = cur.fetchone()
+                                id_zona_urbana = result[0] if result else None
+                            
+                            if macrozona_municipal:
+                                cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (macrozona_municipal,))
+                                result = cur.fetchone()
+                                id_macrozona = result[0] if result else None
+                        
+                        # Atualizar tabela de relacionamento
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id) 
+                                VALUES (%s, %s, %s)
+                                ON CONFLICT (imovel_matricula) 
+                                DO UPDATE SET 
+                                    zona_urbana_id = EXCLUDED.zona_urbana_id, 
+                                    macrozona_id = EXCLUDED.macrozona_id
+                            """, (matricula_imovel, id_zona_urbana, id_macrozona))
 
-                    # Atualizar tabela analise (ex: situacao_analise e responsavel_analise)
+                # 6. ATUALIZAR REQUERENTE (apenas se dados foram preenchidos)
+                cpf_requerente = formulario.get("cpf_requerente")
+                cnpj_requerente = formulario.get("cnpj_requerente")
+                cpf_cnpj_requerente = cpf_requerente or cnpj_requerente
+                nome_requerente = formulario.get("nome_requerente")
+                tipo_requerente = formulario.get("tipo_requerente")
+                
+                if cpf_cnpj_requerente and nome_requerente:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            INSERT INTO requerente (cpf_cnpj_requerente, nome_requerente, tipo_requerente) 
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (cpf_cnpj_requerente) 
+                            DO UPDATE SET 
+                                nome_requerente = EXCLUDED.nome_requerente,
+                                tipo_requerente = EXCLUDED.tipo_requerente
+                        """, (cpf_cnpj_requerente, nome_requerente, tipo_requerente))
+                    
+                    # Atualizar campo 'requerente' na tabela processo
+                    with conn.cursor() as cur:
+                        cur.execute("UPDATE processo SET requerente = %s WHERE protocolo = %s", 
+                                (cpf_cnpj_requerente, protocolo))
+
+                # 7. ATUALIZAR ANALISE (apenas campos modificados)
+                with conn.cursor() as cur:
+                    # Buscar análise atual
+                    cur.execute("SELECT * FROM analise WHERE processo_protocolo = %s", (protocolo,))
+                    analise_atual = cur.fetchone()
+                    analise_dict = dict(zip([desc[0] for desc in cur.description], analise_atual)) if analise_atual else {}
+                    
+                    campos_analise_para_atualizar = []
+                    valores_analise_para_atualizar = []
+                    
+                    # Campos da análise
                     situacao_analise = formulario.get("situacao_analise", "NÃO FINALIZADA")
-                    cur.execute("""
-                        UPDATE analise
-                        SET situacao_analise = %s, responsavel_analise = %s
-                        WHERE processo_protocolo = %s
-                    """, (situacao_analise, cpf_tecnico, protocolo))
+                    prioridade = formulario.get("prioridade")
+                    complexidade = formulario.get("complexidade")
+                    
+                    if situacao_analise != analise_dict.get("situacao_analise"):
+                        campos_analise_para_atualizar.append("situacao_analise = %s")
+                        valores_analise_para_atualizar.append(situacao_analise)
+                    
+                    if prioridade and prioridade != analise_dict.get("prioridade"):
+                        campos_analise_para_atualizar.append("prioridade = %s")
+                        valores_analise_para_atualizar.append(prioridade)
+                    
+                    if complexidade and complexidade != analise_dict.get("complexidade"):
+                        campos_analise_para_atualizar.append("complexidade = %s")
+                        valores_analise_para_atualizar.append(complexidade)
+                    
+                    # Sempre atualiza o responsável
+                    campos_analise_para_atualizar.append("responsavel_analise = %s")
+                    valores_analise_para_atualizar.append(cpf_tecnico)
+                    
+                    if campos_analise_para_atualizar:
+                        campos_sql_analise = ", ".join(campos_analise_para_atualizar)
+                        valores_analise_para_atualizar.append(protocolo)
+                        cur.execute(f"UPDATE analise SET {campos_sql_analise} WHERE processo_protocolo = %s", 
+                                valores_analise_para_atualizar)
 
                 conn.commit()
+                print("✅ Atualização concluída com sucesso!")
 
             return redirect(url_for("dplam.ambiente"))
 
         except Exception as e:
+            print(f"❌ Erro na atualização: {e}")
             return f"Erro ao atualizar processo: {e}", 500
 
     # Buscar listas para selects (pode colocar em função para reutilizar)
