@@ -52,18 +52,6 @@
             color: #6c757d;
             cursor: not-allowed;
         }
-        .edit-checkbox {
-            position: absolute;
-            top: 35px;
-            right: 0;
-            display: flex;
-            align-items: center;
-            font-weight: normal;
-            color: var(--primary-color);
-        }
-        .edit-checkbox input {
-            margin-right: 5px;
-        }
         .button-group {
             display: flex;
             justify-content: center;
@@ -98,25 +86,91 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(108, 117, 125, 0.2);
         }
-            /* Botão Voltar fixo no canto superior esquerdo */
+        /* Botão Voltar fixo no canto superior esquerdo */
         .btn-voltar {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        padding: 8px 16px;
-        border-radius: 5px;
-        font-weight: bold;
-        text-decoration: none;
-        background-color: #bdc3c7;
-        color: #2c3e50;
-        transition: background-color 0.2s;
-        z-index: 1000;
-    }
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-decoration: none;
+            background-color: #bdc3c7;
+            color: #2c3e50;
+            transition: background-color 0.2s;
+            z-index: 1000;
+        }
+       
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            transition: var(--transition);
+            resize: vertical;
+            height: 48px;
+            line-height: 1.5;
+        }
+
+        textarea[readonly] {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        input[type="text"], select, input[type="date"], textarea {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        input[readonly], select:disabled, textarea[readonly] {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* === BOTÕES EDITAR CONGELADO === */
+        .btn-editar-congelado {
+            position: absolute;
+            top: 35px;
+            right: 0;
+            padding: 8px 15px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .btn-editar-congelado:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .campo-congelado {
+            background-color: #f8f9fa !important;
+            border-color: #e9ecef !important;
+            color: #6c757d !important;
+            cursor: not-allowed !important;
+        }
     </style>
 
     <!-- Botão de voltar -->
-<a href="{{ url_for('dig.ambiente') }}" class="btn-voltar">⬅ Voltar</a>
-
+    <a href="{{ url_for('dig.ambiente') }}" class="btn-voltar">⬅ Voltar</a>
 </head>
 <body>
 <div class="container">
@@ -128,38 +182,26 @@
         <label>
             Protocolo:
             <input type="text" id="protocolo" name="protocolo" value="{{ processo.protocolo }}" readonly />
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="protocolo" />Editar</span>
         </label>
 
         <label>
             Observações:
-            <textarea id="observacoes" name="observacoes" rows="3" {% if processo.observacoes %}readonly{% endif %}>{{ processo.observacoes or '' }}</textarea>
-            {% if processo.observacoes %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="observacoes" />Editar</span>
-            {% endif %}
+            <textarea id="observacoes" name="observacoes" {% if processo.observacoes %}readonly{% endif %}>{{ processo.observacoes or '' }}</textarea>
         </label>
 
         <label>
             Número da Pasta:
-            <input type="text" id="numero_pasta" name="numero_pasta" value="{{ processo.pasta_numero or '' }}" {% if processo.pasta_numero %}readonly{% endif %}/>
-            {% if processo.pasta_numero %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="numero_pasta" />Editar</span>
-            {% endif %}
+            <input type="text" id="pasta_numero" name="pasta_numero" value="{{ processo.pasta_numero or '' }}" {% if processo.pasta_numero %}readonly{% endif %}/>
         </label>
-
-        <!-- Continue montando os campos seguindo este padrão -->
 
         <label>
             Solicitação do Requerente:
-            <select id="solicitacao_resposta" name="solicitacao_resposta" {% if processo.solicitacao_resposta %}disabled{% endif %}>
+            <select id="solicitacao_requerente" name="solicitacao_requerente" {% if processo.solicitacao_requerente %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
                 {% for opcao in solicitacao_resposta %}
-                <option value="{{ opcao }}" {% if processo.solicitacao_resposta == opcao %}selected{% endif %}>{{ opcao }}</option>
+                <option value="{{ opcao }}" {% if processo.solicitacao_requerente == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if processo.solicitacao_resposta %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="solicitacao_resposta" />Editar</span>
-            {% endif %}
         </label>
 
         <label>
@@ -170,9 +212,6 @@
                 <option value="{{ opcao }}" {% if processo.resposta_departamento == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if processo.resposta_departamento %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="resposta_departamento" />Editar</span>
-            {% endif %}
         </label>
 
         <label>
@@ -183,9 +222,6 @@
                 <option value="{{ opcao }}" {% if processo.tramitacao == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if processo.tramitacao %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="tramitacao" />Editar</span>
-            {% endif %}
         </label>
 
         <label>
@@ -196,191 +232,149 @@
                 <option value="{{ opcao }}" {% if processo.tipologia == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if processo.tipologia %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="tipologia" />Editar</span>
-            {% endif %}
         </label>
 
         <label>
             Município:
-            <select id="municipio" name="municipio" {% if municipio.nome_municipio %}disabled{% endif %}>
+            <select id="municipio" name="municipio" {% if processo.municipio %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
                 {% for opcao in municipio %}
-                <option value="{{ opcao }}" {% if municipio.nome_municipio == opcao %}selected{% endif %}>{{ opcao }}</option>
+                <option value="{{ opcao }}" {% if processo.municipio == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if municipio.nome_municipio %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="municipio" />Editar</span>
-            {% endif %}
         </label>
-        <div class="campo-condicional" id="zona-urbana-container" style="{{ 'display:block;' if processo.zona_urbana else 'display:none;' }}">
-            <label>
-                Zona Urbana:
-                <select id="zona_urbana" name="zona_urbana" {% if processo.zona_urbana %}disabled{% endif %}>
-                    <option value="">--Selecione--</option>
-                    {% if processo.zona_urbana %}
-                    <option value="{{ processo.zona_urbana }}" selected>{{ processo.zona_urbana }}</option>
-                    {% endif %}
-                </select>
-                {% if processo.zona_urbana %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="zona_urbana" />Editar</span>
-                {% endif %}
-            </label>
-        </div>
 
-        <div class="campo-condicional" id="macrozona-container" style="{{ 'display:block;' if processo.macrozona_municipal else 'display:none;' }}">
-            <label>
-                Macrozona Municipal:
-                <select id="macrozona_municipal" name="macrozona_municipal" {% if processo.macrozona_municipal %}disabled{% endif %}>
-                    <option value="">--Selecione--</option>
-                    {% if processo.macrozona_municipal %}
-                    <option value="{{ processo.macrozona_municipal }}" selected>{{ processo.macrozona_municipal }}</option>
-                    {% endif %}
-                </select>
-                {% if processo.macrozona_municipal %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="macrozona_municipal" />Editar</span>
-                {% endif %}
-            </label>
-        </div>
+<!-- ZONA URBANA - CORRIGIDO -->
+<div class="campo-condicional" id="zona-urbana-container" style="display: {% if processo.municipio %}block{% else %}none{% endif %};">
+    <label>
+        Zona Urbana:
+        <select id="zona_urbana" name="zona_urbana" {% if processo.id_zona_urbana %}disabled{% endif %}>
+            <option value="">--Selecione--</option>
+            {% for id_zona_urbana, sigla_zona_urbana in zonas_urbanas %}
+            <option value="{{ sigla_zona_urbana }}"
+                    {% if processo.zona_urbana == sigla_zona_urbana %}selected{% endif %}>
+                {{ sigla_zona_urbana }}
+            </option>
+            {% endfor %}
+        </select>
+        {% if processo.id_zona_urbana %}
+        <button type="button" class="btn-editar-congelado" id="btn-editar-zona_urbana">Editar</button>
+        {% endif %}
+    </label>
+</div>
 
-        <label>
-            Situação da Localização:
-            <select id="situacao_localizacao" name="situacao_localizacao" {% if processo.situacao_localizacao %}disabled{% endif %}>
+<!-- MACROZONA - CORRIGIDO -->
+<div class="campo-condicional" id="macrozona-container" style="display: {% if processo.municipio %}block{% else %}none{% endif %};">
+    <label>
+        Macrozona Municipal:
+        <select id="macrozona_municipal" name="macrozona_municipal" {% if processo.id_macrozona %}disabled{% endif %}>
+            <option value="">--Selecione--</option>
+            {% for id_macrozona, sigla_macrozona in macrozonas %}
+           <option value="{{ sigla_macrozona }}" 
+                    {% if processo.macrozona_municipal == sigla_macrozona %}selected{% endif %}>
+                {{ sigla_macrozona }}
+            </option>
+            {% endfor %}
+        </select>
+        {% if processo.id_macrozona %}
+        <button type="button" class="btn-editar-congelado" id="btn-editar-macrozona_municipal">Editar</button>
+        {% endif %}
+    </label>
+</div>
+
+        <label>Situação da Localização:
+            <select name="situacao_localizacao" id="situacao_localizacao" {% if processo.situacao_localizacao %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
                 {% for opcao in situacoes_localizacao %}
-                <option value="{{ opcao }}" {% if processo.situacao_localizacao == opcao %}selected{% endif %}>{{ opcao }}</option>
+                    <option value="{{ opcao }}" {% if processo.situacao_localizacao == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if processo.situacao_localizacao %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="situacao_localizacao" />Editar</span>
-            {% endif %}
         </label>
 
         <div class="campo-condicional" id="localizacao-detalhes" style="{{ 'display:block;' if processo.situacao_localizacao == 'LOCALIZADA' else 'display:none;' }}">
             <label>
                 Responsável pela Localização:
-                <select id="responsavel_localizacao_cpf" name="responsavel_localizacao_cpf" {% if processo.responsavel_localizacao_cpf %}disabled{% endif %}>
+                <select id="responsavel_localizacao" name="responsavel_localizacao" {% if processo.responsavel_localizacao %}disabled{% endif %}>
                     <option value="">--Selecione--</option>
                     {% for cpf, nome, setor in tecnico %}
-                    <option value="{{ cpf }}" {% if processo.responsavel_localizacao_cpf == cpf %}selected{% endif %}>{{ nome }}</option>
+                    <option value="{{ cpf }}" {% if processo.responsavel_localizacao == cpf %}selected{% endif %}>{{ nome }}</option>
                     {% endfor %}
                 </select>
-                {% if processo.responsavel_localizacao_cpf %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="responsavel_localizacao_cpf" />Editar</span>
-                {% endif %}
             </label>
 
             <label>
                 Início da Localização:
                 <input type="date" id="inicio_localizacao" name="inicio_localizacao" value="{{ processo.inicio_localizacao or '' }}" {% if processo.inicio_localizacao %}readonly{% endif %} />
-                {% if processo.inicio_localizacao %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="inicio_localizacao" />Editar</span>
-                {% endif %}
             </label>
             
             <label>
                 Fim da Localização:
                 <input type="date" id="fim_localizacao" name="fim_localizacao" value="{{ processo.fim_localizacao or '' }}" {% if processo.fim_localizacao %}readonly{% endif %} />
-                {% if processo.fim_localizacao %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="fim_localizacao" />Editar</span>
-                {% endif %}
             </label>
         </div>
+
         <h2>Detalhes do Projeto</h2>
 
         <label>
             Nome ou loteamento do condomínio a ser aprovado:
             <input type="text" id="nome_condominio" name="nome_ou_loteamento_do_condominio_a_ser_aprovado" value="{{ processo.nome_ou_loteamento_do_condominio_a_ser_aprovado or '' }}" {% if processo.nome_ou_loteamento_do_condominio_a_ser_aprovado %}readonly{% endif %} />
-            {% if processo.nome_ou_loteamento_do_condominio_a_ser_aprovado %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="nome_condominio" />Editar</span>
-            {% endif %}
         </label>
 
         <div class="checkbox-inline">
             <label>
                 Interesse Social:
                 <input type="checkbox" id="interesse_social" name="interesse_social" {% if processo.interesse_social %}checked{% endif %} disabled />
-                {% if processo.interesse_social %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="interesse_social" />Editar</span>
-                {% endif %}
             </label>
         </div>
 
         <div class="checkbox-inline">
             <label>
                 Lei inclui perímetro urbano:
-                <input type="checkbox" id="lei_perimetro_urbano" name="lei_inclui_perimetro_urbano" {% if processo.lei_inclui_perimetro_urbano %}checked{% endif %} disabled />
-                {% if processo.lei_inclui_perimetro_urbano %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="lei_perimetro_urbano" />Editar</span>
-                {% endif %}
+                <input type="checkbox" id="lei_inclui_perimetro_urbano" name="lei_inclui_perimetro_urbano" {% if processo.perimetro_urbano %}checked{% endif %} disabled />
             </label>
         </div>
 
         <h2>Informações do Requerente</h2>
-
         <label>
             Nome do Requerente:
-            <input type="text" id="nome_requerente" name="nome_requerente" value="{{ processo.requerente or '' }}" {% if processo.requerente %}readonly{% endif %} />
-            {% if processo.requerente %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="nome_requerente" />Editar</span>
-            {% endif %}
+            <input type="text" id="nome_requerente" name="nome_requerente" value="{{ processo.nome_requerente or '' }}" {% if processo.nome_requerente %}readonly{% endif %} />
         </label>
 
-        <label>
-            Tipo de Requerente:
-            <select id="tipo_de_requerente" name="tipo_de_requerente" {% if processo.tipo_de_requerente %}disabled{% endif %}>
+        <label>Tipo de Requerente:
+            <select name="tipo_requerente" id="tipo_requerente" {% if processo.tipo_requerente %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
-                <option value="PESSOA FÍSICA" {% if processo.tipo_de_requerente == 'PESSOA FÍSICA' %}selected{% endif %}>Pessoa Física</option>
-                <option value="PESSOA JURÍDICA" {% if processo.tipo_de_requerente == 'PESSOA JURÍDICA' %}selected{% endif %}>Pessoa Jurídica</option>
+                <option value="PESSOA FÍSICA" {% if processo.tipo_requerente == 'PESSOA FÍSICA' %}selected{% endif %}>Pessoa Física</option>
+                <option value="PESSOA JURÍDICA" {% if processo.tipo_requerente == 'PESSOA JURÍDICA' %}selected{% endif %}>Pessoa Jurídica</option>
             </select>
-            {% if processo.tipo_de_requerente %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="tipo_de_requerente" />Editar</span>
-            {% endif %}
         </label>
 
-        <div class="campo-condicional" id="cpf-container" style="{{ 'display:block;' if processo.tipo_de_requerente == 'PESSOA FÍSICA' else 'display:none;' }}">
-            <label>
-                CPF:
-                <input type="text" id="cpf_requerente" name="cpf_requerente" maxlength="14" placeholder="Digite o CPF" value="{{ processo.cpf_requerente or '' }}" {% if processo.cpf_requerente %}readonly{% endif %} />
-                {% if processo.cpf_requerente %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="cpf_requerente" />Editar</span>
-                {% endif %}
+        <!-- Campo CPF (condicional) -->
+        <div class="campo-condicional" id="cpf-container" style="display: {% if processo.tipo_requerente == 'PESSOA FÍSICA' %}block{% else %}none{% endif %};">
+            <label>CPF:
+                <input type="text" name="cpf_requerente" id="cpf_requerente" placeholder="Digite o CPF" maxlength="14" value="{{ processo.cpf_requerente or '' }}" {% if processo.cpf_requerente %}readonly{% endif %}>
             </label>
         </div>
 
-        <div class="campo-condicional" id="cnpj-container" style="{{ 'display:block;' if processo.tipo_de_requerente == 'PESSOA JURÍDICA' else 'display:none;' }}">
-            <label>
-                CNPJ:
-                <input type="text" id="cnpj_requerente" name="cnpj_requerente" maxlength="18" placeholder="Digite o CNPJ" value="{{ processo.cnpj_requerente or '' }}" {% if processo.cnpj_requerente %}readonly{% endif %} />
-                {% if processo.cnpj_requerente %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="cnpj_requerente" />Editar</span>
-                {% endif %}
+        <!-- Campo CNPJ (condicional) -->
+        <div class="campo-condicional" id="cnpj-container" style="display: {% if processo.tipo_requerente == 'PESSOA JURÍDICA' %}block{% else %}none{% endif %};">
+            <label>CNPJ:
+                <input type="text" name="cnpj_requerente" id="cnpj_requerente" placeholder="Digite o CNPJ" maxlength="18" value="{{ processo.cnpj_requerente or '' }}" {% if processo.cnpj_requerente %}readonly{% endif %}>
             </label>
         </div>
-
 
         <label>
             Nome do Proprietário:
             <input type="text" id="nome_proprietario" name="nome_proprietario" value="{{ processo.nome_proprietario or '' }}" {% if processo.nome_proprietario %}readonly{% endif %} />
-            {% if processo.nome_proprietario %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="nome_proprietario" />Editar</span>
-            {% endif %}
         </label>
 
         <label>
             CPF/CNPJ do Proprietário:
             <input type="text" id="cpf_cnpj_proprietario" name="cpf_cnpj_proprietario" maxlength="18" value="{{ processo.cpf_cnpj_proprietario or '' }}" {% if processo.cpf_cnpj_proprietario %}readonly{% endif %} />
-            {% if processo.cpf_cnpj_proprietario %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="cpf_cnpj_proprietario" />Editar</span>
-            {% endif %}
         </label>
 
         <label>
             Matrícula do Imóvel:
-            <input type="text" id="matricula_imovel" name="matricula_imovel" value="{{ processo.matricula_imovel or '' }}" {% if processo.matricula_imovel %}readonly{% endif %} />
-            {% if processo.matricula_imovel %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="matricula_imovel" />Editar</span>
-            {% endif %}
+            <input type="text" id="imovel_matricula" name="imovel_matricula" value="{{ processo.imovel_matricula or '' }}" {% if processo.imovel_matricula %}readonly{% endif %} />
         </label>
 
         <label>
@@ -391,9 +385,6 @@
                 <option value="{{ opcao }}" {% if processo.prioridade == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if processo.prioridade %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="prioridade" />Editar</span>
-            {% endif %}
         </label>
 
         <label>
@@ -404,23 +395,23 @@
                 <option value="{{ opcao }}" {% if processo.complexidade == opcao %}selected{% endif %}>{{ opcao }}</option>
                 {% endfor %}
             </select>
-            {% if processo.complexidade %}
-            <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="complexidade" />Editar</span>
-            {% endif %}
         </label>
+
         <h2>Áreas Condicionais</h2>
 
+        <!-- ========== APA ========== -->
         <div>
-            <label>
+            <label style="position: relative;">
                 Possui APA?
-                <input type="checkbox" id="possui_apa" class="trigger-condicional toggle-edit" data-target="apa" {% if processo.possui_apa %}checked{% endif %} {% if processo.possui_apa %}disabled{% endif %}/>
-                {% if processo.possui_apa %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_apa" />Editar</span>
+                <input type="checkbox" id="possui_apa" class="trigger-condicional" data-target="apa" 
+                    {% if processo.apa %}checked{% endif %} />
+                {% if processo.apa %}
+                <button type="button" class="btn-editar-congelado" id="btn-editar-possui_apa">Editar</button>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="apa-container" style="{{ 'display:block;' if processo.possui_apa else 'display:none;' }}">
+        <div class="campo-condicional" id="apa-container" style="{{ 'display:block;' if processo.apa else 'display:none;' }}">
             <label>
                 Selecione a APA:
                 <select id="apa" name="apa" {% if processo.apa %}disabled{% endif %}>
@@ -429,9 +420,6 @@
                     <option value="{{ opcao }}" {% if processo.apa == opcao %}selected{% endif %}>{{ opcao }}</option>
                     {% endfor %}
                 </select>
-                {% if processo.apa %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="apa" />Editar</span>
-                {% endif %}
             </label>
         </div>
 
@@ -444,23 +432,22 @@
                     <option value="{{ processo.zona_apa }}" selected>{{ processo.zona_apa }}</option>
                     {% endif %}
                 </select>
-                {% if processo.zona_apa %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="zona_apa" />Editar</span>
-                {% endif %}
             </label>
         </div>
 
+        <!-- ========== UTP ========== -->
         <div>
-            <label>
+            <label style="position: relative;">
                 Possui UTP?
-                <input type="checkbox" id="possui_utp" class="trigger-condicional toggle-edit" data-target="utp" {% if processo.possui_utp %}checked{% endif %} {% if processo.possui_utp %}disabled{% endif %}/>
-                {% if processo.possui_utp %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_utp" />Editar</span>
+                <input type="checkbox" id="possui_utp" class="trigger-condicional" data-target="utp" 
+                    {% if processo.utp %}checked{% endif %} />
+                {% if processo.utp %}
+                <button type="button" class="btn-editar-congelado" id="btn-editar-possui_utp">Editar</button>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="utp-container" style="{{ 'display:block;' if processo.possui_utp else 'display:none;' }}">
+        <div class="campo-condicional" id="utp-container" style="{{ 'display:block;' if processo.utp else 'display:none;' }}">
             <label>
                 Selecione a UTP:
                 <select id="utp" name="utp" {% if processo.utp %}disabled{% endif %}>
@@ -469,9 +456,6 @@
                     <option value="{{ opcao }}" {% if processo.utp == opcao %}selected{% endif %}>{{ opcao }}</option>
                     {% endfor %}
                 </select>
-                {% if processo.utp %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="utp" />Editar</span>
-                {% endif %}
             </label>
         </div>
 
@@ -484,98 +468,73 @@
                     <option value="{{ processo.zona_utp }}" selected>{{ processo.zona_utp }}</option>
                     {% endif %}
                 </select>
-                {% if processo.zona_utp %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="zona_utp" />Editar</span>
-                {% endif %}
             </label>
         </div>
 
+        <!-- ========== CURVA DE INUNDAÇÃO ========== -->
         <div>
-            <label>
-                Possui Manancial?
-                <input type="checkbox" id="possui_manancial" class="trigger-condicional toggle-edit" data-target="tipo_manancial" {% if processo.possui_manancial %}checked{% endif %} {% if processo.possui_manancial %}disabled{% endif %}/>
-                {% if processo.possui_manancial %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_manancial" />Editar</span>
-                {% endif %}
-            </label>
-        </div>
-
-        <div class="campo-condicional" id="tipo-manancial-container" style="{{ 'display:block;' if processo.possui_manancial else 'display:none;' }}">
-            <label>
-                Tipo de Manancial:
-                <select id="tipo_manancial" name="tipo_manancial" {% if processo.tipo_manancial %}disabled{% endif %}>
-                    <option value="">--Selecione--</option>
-                    {% for opcao in enums.manancial %}
-                    <option value="{{ opcao }}" {% if processo.tipo_manancial == opcao %}selected{% endif %}>{{ opcao }}</option>
-                    {% endfor %}
-                </select>
-                {% if processo.tipo_manancial %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="tipo_manancial" />Editar</span>
-                {% endif %}
-            </label>
-        </div>
-
-        <div>
-            <label>
+            <label style="position: relative;">
                 Possui Curva de Inundação?
-                <input type="checkbox" id="possui_curva" class="trigger-condicional toggle-edit" data-target="curva_inundacao" {% if processo.possui_curva %}checked{% endif %} {% if processo.possui_curva %}disabled{% endif %}/>
-                {% if processo.possui_curva %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_curva" />Editar</span>
+                <input type="checkbox" id="possui_curva" class="trigger-condicional" data-target="curva_inundacao" 
+                    {% if processo.curva_inundacao %}checked{% endif %} />
+                {% if processo.curva_inundacao %}
+                <button type="button" class="btn-editar-congelado" id="btn-editar-possui_curva">Editar</button>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="curva-inundacao-container" style="{{ 'display:block;' if processo.possui_curva else 'display:none;' }}">
+        <div class="campo-condicional" id="curva-inundacao-container" style="{{ 'display:block;' if processo.curva_inundacao else 'display:none;' }}">
             <label>
                 Curva de Inundação:
                 <select id="curva_inundacao" name="curva_inundacao" {% if processo.curva_inundacao %}disabled{% endif %}>
                     <option value="">--Selecione--</option>
                     {% for opcao in curva_inundacao %}
-                    <option value="{{ opcao }}" {% if processo.curva_inundacao == opcao %}selected{% endif %}>{{ opcao }}</option>
+                        {% set opcao_limpa = opcao.replace('(', '').replace(')', '').replace('"', '') %}
+                        <option value="{{ opcao }}" {% if processo.curva_inundacao == opcao_limpa %}selected{% endif %}>{{ opcao_limpa }}</option>
                     {% endfor %}
                 </select>
-                {% if processo.curva_inundacao %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="curva_inundacao" />Editar</span>
-                {% endif %}
             </label>
         </div>
 
+        <!-- ========== FAIXA DE SERVIDÃO ========== -->
         <div>
-            <label>
+            <label style="position: relative;">
                 Possui Faixa de Servidão?
-                <input type="checkbox" id="possui_faixa" class="trigger-condicional toggle-edit" data-target="faixa_servidao" {% if processo.possui_faixa %}checked{% endif %} {% if processo.possui_faixa %}disabled{% endif %}/>
-                {% if processo.possui_faixa %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_faixa" />Editar</span>
+                <input type="checkbox" id="possui_faixa" class="trigger-condicional" data-target="faixa_servidao" 
+                    {% if processo.faixa_servidao %}checked{% endif %} />
+                {% if processo.faixa_servidao %}
+                <button type="button" class="btn-editar-congelado" id="btn-editar-possui_faixa">Editar</button>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="faixa-servidao-container" style="{{ 'display:block;' if processo.possui_faixa else 'display:none;' }}">
+
+        <div class="campo-condicional" id="faixa-servidao-container" style="{{ 'display:block;' if processo.faixa_servidao else 'display:none;' }}">
             <label>
                 Faixa de Servidão:
                 <select id="faixa_servidao" name="faixa_servidao" {% if processo.faixa_servidao %}disabled{% endif %}>
                     <option value="">--Selecione--</option>
                     {% for opcao in faixa_servidao %}
-                    <option value="{{ opcao }}" {% if processo.faixa_servidao == opcao %}selected{% endif %}>{{ opcao }}</option>
+                        {% set opcao_limpa = opcao.replace('(', '').replace(')', '').replace('"', '') %}
+                        <option value="{{ opcao }}" {% if processo.faixa_servidao == opcao_limpa %}selected{% endif %}>{{ opcao_limpa }}</option>
                     {% endfor %}
                 </select>
-                {% if processo.faixa_servidao %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="faixa_servidao" />Editar</span>
-                {% endif %}
             </label>
         </div>
-
+       
+        <!-- ========== DIRETRIZ VIÁRIA ========== -->
         <div>
-            <label>
+            <label style="position: relative;">
                 Possui Diretriz Viária?
-                <input type="checkbox" id="possui_diretriz" class="trigger-condicional toggle-edit" data-target="sistema_viario" {% if processo.possui_diretriz %}checked{% endif %} {% if processo.possui_diretriz %}disabled{% endif %}/>
-                {% if processo.possui_diretriz %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="possui_diretriz" />Editar</span>
+                <input type="checkbox" id="possui_diretriz" class="trigger-condicional" data-target="sistema_viario" 
+                    {% if processo.sistema_viario %}checked{% endif %} />
+                {% if processo.sistema_viario %}
+                <button type="button" class="btn-editar-congelado" id="btn-editar-possui_diretriz">Editar</button>
                 {% endif %}
             </label>
         </div>
 
-        <div class="campo-condicional" id="diretriz-viaria-container" style="{{ 'display:block;' if processo.possui_diretriz else 'display:none;' }}">
+        <div class="campo-condicional" id="diretriz-viaria-container" style="{{ 'display:block;' if processo.sistema_viario else 'display:none;' }}">
             <label>
                 Classificação Diretriz Viária:
                 <select id="sistema_viario" name="sistema_viario" {% if processo.sistema_viario %}disabled{% endif %}>
@@ -584,9 +543,6 @@
                     <option value="{{ opcao }}" {% if processo.sistema_viario == opcao %}selected{% endif %}>{{ opcao }}</option>
                     {% endfor %}
                 </select>
-                {% if processo.sistema_viario %}
-                <span class="edit-checkbox"><input type="checkbox" class="toggle-edit" data-target="sistema_viario" />Editar</span>
-                {% endif %}
             </label>
         </div>
 
@@ -595,30 +551,318 @@
             <button type="submit" name="finalizar" value="1">Finalizar</button>
             <button type="reset">Limpar</button>
         </div>
-
     </form>
 </div>
 
 <script>
-document.querySelectorAll('.toggle-edit').forEach(function(checkbox) {
-    checkbox.addEventListener('change', function() {
-        const targetId = this.getAttribute('data-target');
-        const target = document.getElementById(targetId);
-        if (!target) return;
-        if(this.checked) {
-            target.removeAttribute('readonly');
-            target.removeAttribute('disabled');
-            target.focus();
+// ========== FUNÇÃO UNIVERSAL COMPLETA ==========
+function criarBotaoEditarUniversal(campoId, botaoId, textoBotao = 'Editar') {
+    console.log(`🔄 Criando botão para: ${campoId}`);
+    
+    const campo = document.getElementById(campoId);
+    if (!campo) {
+        console.log(`❌ Campo ${campoId} não encontrado`);
+        return;
+    }
+    
+    // Remove botão existente se houver
+    const botaoExistente = document.getElementById(botaoId);
+    if (botaoExistente) {
+        botaoExistente.remove();
+    }
+    
+    // Para checkboxes, verificamos se está checked
+    // Para outros campos, verificamos se tem valor
+    const estaPreenchido = campo.type === 'checkbox' ? campo.checked : 
+                          (campo.value && campo.value.trim() !== '');
+    
+    if (!estaPreenchido) {
+        console.log(`⏭️ Campo ${campoId} não está preenchido, pulando...`);
+        return;
+    }
+    
+    // Cria o botão
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.id = botaoId;
+    botao.className = 'btn-editar-congelado';
+    botao.textContent = textoBotao;
+    
+    // Garante que o label tenha position: relative para o posicionamento absoluto funcionar
+    const label = campo.parentNode;
+    if (label.style.position !== 'relative') {
+        label.style.position = 'relative';
+    }
+    
+    // Insere o botão no label
+    label.appendChild(botao);
+    
+    console.log(`✅ Botão ${botaoId} criado para campo ${campoId}`);
+    
+    // Evento do botão - DESCONGELA
+    botao.addEventListener('click', function() {
+        console.log(`🔓 Descongelando campo ${campoId}`);
+        
+        if (campo.type === 'checkbox') {
+            // Para checkboxes, remove o disabled
+            campo.disabled = false;
+            // Não aplicamos classe campo-congelado em checkboxes
         } else {
-            if(target.tagName === "SELECT" || target.type === "checkbox") {
-                target.setAttribute('disabled', 'disabled');
-            } else {
-                target.setAttribute('readonly', 'readonly');
+            campo.disabled = false;
+            campo.readOnly = false;
+            campo.classList.remove('campo-congelado');
+        }
+        
+        // Foca no elemento apropriado
+        if (campo.type !== 'checkbox') {
+            campo.focus();
+        }
+        
+        this.style.display = 'none';
+    });
+    
+    // Função para congelar
+    function congelarCampo() {
+        const aindaPreenchido = campo.type === 'checkbox' ? campo.checked : 
+                               (campo.value && campo.value.trim() !== '');
+        
+        if (aindaPreenchido) {
+            console.log(`🔒 Congelando campo ${campoId}`);
+            campo.disabled = true;
+            
+            if (campo.tagName === 'INPUT' && campo.type !== 'checkbox') {
+                campo.readOnly = true;
+                campo.classList.add('campo-congelado');
+            }
+            
+            botao.style.display = 'inline-block';
+        } else {
+            // Se não está mais preenchido, remove o botão
+            botao.style.display = 'none';
+        }
+    }
+    
+    // Eventos para recongelar
+     /*
+    if (campo.tagName === 'SELECT') {
+        campo.addEventListener('change', congelarCampo);
+    } else if (campo.type === 'checkbox') {
+        campo.addEventListener('change', function() {
+            // Para checkboxes, congela imediatamente após mudança
+            setTimeout(congelarCampo, 100);
+        });
+    } else {
+        campo.addEventListener('blur', congelarCampo);
+    } 
+    */
+    
+    // Estado inicial - CONGELA se estiver preenchido
+    if (estaPreenchido) {
+        campo.disabled = true;
+        if (campo.tagName === 'INPUT' && campo.type !== 'checkbox') {
+            campo.readOnly = true;
+            campo.classList.add('campo-congelado');
+        }
+        botao.style.display = 'inline-block';
+    } else {
+        botao.style.display = 'none';
+    }
+}
+
+
+// ========== INICIALIZAÇÃO ATUALIZADA ==========
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 DOM Carregado - Iniciando sistema de edição...');
+    
+    // 2. Controle de exibição CPF/CNPJ
+    const tipoRequerente = document.getElementById('tipo_requerente');
+    if (tipoRequerente) {
+        tipoRequerente.addEventListener('change', function() {
+            const tipo = this.value;
+            const cpfContainer = document.getElementById('cpf-container');
+            const cnpjContainer = document.getElementById('cnpj-container');
+            
+            if (cpfContainer) cpfContainer.style.display = (tipo === 'PESSOA FÍSICA') ? 'block' : 'none';
+            if (cnpjContainer) cnpjContainer.style.display = (tipo === 'PESSOA JURÍDICA') ? 'block' : 'none';
+        });
+        
+        // Trigger inicial
+        tipoRequerente.dispatchEvent(new Event('change'));
+    }
+    
+    // 3. Máscaras para CPF/CNPJ
+    function aplicarMascaraCPF(cpf) {
+        cpf = cpf.replace(/\D/g, '');
+        return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+    }
+    
+    function aplicarMascaraCNPJ(cnpj) {
+        cnpj = cnpj.replace(/\D/g, '');
+        return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+    }
+    
+    const cpfInput = document.getElementById('cpf_requerente');
+    const cnpjInput = document.getElementById('cnpj_requerente');
+    
+    cpfInput?.addEventListener('input', function(e) {
+        let valor = e.target.value.replace(/\D/g, '');
+        if (valor.length <= 11) {
+            e.target.value = aplicarMascaraCPF(valor);
+        }
+    });
+    
+    cnpjInput?.addEventListener('input', function(e) {
+        let valor = e.target.value.replace(/\D/g, '');
+        if (valor.length <= 14) {
+            e.target.value = aplicarMascaraCNPJ(valor);
+        }
+    });
+    
+// 4. Controle de exibição condicional (APA, UTP, etc.) - VERSÃO CORRIGIDA
+document.querySelectorAll('.trigger-condicional').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const target = this.getAttribute('data-target');
+        console.log(`🔘 Checkbox ${this.id} alterado para: ${this.checked}, target: ${target}`);
+        
+        // Mapeamento dos containers para cada tipo de campo
+        const mapeamentoContainers = {
+            'apa': ['apa-container', 'zona-apa-container'],
+            'utp': ['utp-container', 'zona-utp-container'],
+            'curva_inundacao': ['curva-inundacao-container'],
+            'faixa_servidao': ['faixa-servidao-container'],
+            'sistema_viario': ['diretriz-viaria-container']
+        };
+        
+        const containers = mapeamentoContainers[target] || [`${target}-container`];
+        
+        // Mapeamento dos campos para limpar
+        const mapeamentoCampos = {
+            'apa': ['apa', 'zona_apa'],
+            'utp': ['utp', 'zona_utp'],
+            'curva_inundacao': ['curva_inundacao'],
+            'faixa_servidao': ['faixa_servidao'],
+            'sistema_viario': ['sistema_viario']
+        };
+        
+        const camposParaLimpar = mapeamentoCampos[target] || [target];
+        
+        if (this.checked) {
+            // SE MARCOU: Mostra todos os containers
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.style.display = 'block';
+                    console.log(`✅ Mostrando container: ${containerId}`);
+                }
+            });
+        } else {
+            // SE DESMARCOU: Esconde containers e limpa campos
+            console.log(`🧹 Desmarcado - limpando cascata para: ${target}`);
+            
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.style.display = 'none';
+                    console.log(`✅ Ocultado container: ${containerId}`);
+                }
+            });
+            
+            // Limpa todos os campos relacionados
+            camposParaLimpar.forEach(campoId => {
+                const campo = document.getElementById(campoId);
+                if (campo) {
+                    campo.value = '';
+                    console.log(`✅ Limpo campo: ${campoId}`);
+                    
+                    // Remove botões de editar se existirem
+                    const botaoEditar = document.getElementById(`btn-editar-${campoId}`);
+                    if (botaoEditar) {
+                        botaoEditar.remove();
+                        console.log(`🗑️ Removido botão: btn-editar-${campoId}`);
+                    }
+                }
+            });
+            
+            // Remove botão de editar do próprio checkbox "possui"
+            const botaoCheckbox = document.getElementById(`btn-editar-${this.id}`);
+            if (botaoCheckbox) {
+                botaoCheckbox.remove();
+                console.log(`🗑️ Removido botão: btn-editar-${this.id}`);
             }
         }
     });
+    
+    // Trigger inicial para configurar estado correto
+    if (checkbox.checked) {
+        checkbox.dispatchEvent(new Event('change'));
+    }
 });
+    
+    // 5. Controle de exibição da Localização
+    const situacaoLocalizacao = document.getElementById('situacao_localizacao');
+    const localizacaoDetalhes = document.getElementById('localizacao-detalhes');
+    
+    if (situacaoLocalizacao && localizacaoDetalhes) {
+        situacaoLocalizacao.addEventListener('change', function() {
+            localizacaoDetalhes.style.display = 
+                (this.value === 'LOCALIZADA') ? 'block' : 'none';
+        });
+        
+        // Trigger inicial
+        situacaoLocalizacao.dispatchEvent(new Event('change'));
+    }
+
+    // 6. APLICA BOTÕES EDITAR UNIVERSAL
+    setTimeout(() => {
+        console.log('🎯 Aplicando botões de edição...');
+        
+        const camposParaEditar = [
+            'protocolo', 'observacoes', 'pasta_numero',
+            'solicitacao_requerente', 'resposta_departamento', 'tramitacao',
+            'tipologia', 'municipio', 'zona_urbana', 'macrozona_municipal',
+            'situacao_localizacao', 'responsavel_localizacao', 
+            'inicio_localizacao', 'fim_localizacao',
+            'nome_condominio', 'interesse_social', 'lei_inclui_perimetro_urbano',
+            'nome_requerente', 'tipo_requerente', 'cpf_requerente', 
+            'cnpj_requerente', 'nome_proprietario', 'cpf_cnpj_proprietario',
+            'imovel_matricula', 'prioridade', 'complexidade',
+            // CHECKBOXES "POSSUI"
+            'possui_apa', 'possui_utp', 'possui_curva', 'possui_faixa', 'possui_diretriz',
+            // CAMPOS CONDICIONAIS
+            'apa', 'zona_apa', 'utp', 'zona_utp', 
+            'curva_inundacao', 'faixa_servidao', 'sistema_viario'
+        ];
+        
+        let camposAplicados = 0;
+        
+        camposParaEditar.forEach((campoId, index) => {
+            setTimeout(() => {
+                const campo = document.getElementById(campoId);
+                if (campo && (campo.value || campo.checked)) {
+                    criarBotaoEditarUniversal(campoId, `btn-editar-${campoId}`, 'Editar');
+                    camposAplicados++;
+                }
+            }, index * 50);
+        });
+        
+        console.log(`✅ Aplicados botões em ${camposAplicados} campos preenchidos!`);
+    }, 300);
+});
+// ========== EVENTO PARA BOTÃO EDITAR DO MUNICÍPIO ==========
+document.addEventListener('click', function(e) {
+    if (e.target.id === 'btn-editar-municipio') {
+        console.log('✏️ Botão editar município clicado');
+        // Quando o município for editado, recarrega as zonas após um tempo
+        setTimeout(() => {
+            const municipioSelect = document.getElementById('municipio');
+            if (municipioSelect && municipioSelect.value) {
+                console.log('🔄 Recarregando zonas para município editado:', municipioSelect.value);
+                carregarZonasParaMunicipioExistente();
+            }
+        }, 500);
+    }
+});
+
 </script>
 </body>
 </html>
-
