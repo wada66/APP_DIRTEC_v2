@@ -90,20 +90,20 @@
     }
 
     .btn-secondary {
-        background-color: #3498db;
+        background-color: #27ae60;
     }
 
     .btn-secondary:hover {
-        background-color: #2980b9;
+        background-color: #27ae60;
     }
 
     .btn-primary {
-        background-color: #2980b9;
+        background-color: #2ecc71;
         color: #fff;
     }
 
     .btn-primary:hover {
-        background-color: #1f5f8a;
+        background-color: #27ae60;
     }
 
     .badge-finalizada {
@@ -121,14 +121,16 @@
     }
 
     .acoes {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 10px;
-        align-items: center;
-        justify-content: center;   /* agora centraliza os botões no meio da célula */
-        white-space: nowrap;
-        height: 100%;
-        padding: 0 !important;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    padding: 12px 10px;           /* mesmo padding das outras células */
+    border: 1px solid #ddd;       /* mantém a borda igual às demais */
+    height: auto;                 /* deixa a altura natural */
+    box-sizing: border-box;       /* garante que padding + borda contam no total */
     }
 
     .acoes a.btn,
@@ -163,6 +165,44 @@
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         z-index: 10;
         min-width: 150px;
+    }
+
+    .dropdown-encaminhar select {
+        width: 100%;
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+    }
+
+    /* Botão "Encaminhar" igual ao "Complementar" */
+    .btn-encaminhar {
+        background-color: #2ecc71;  /* mesma cor verde */
+        color: #fff;
+        border: none;
+        padding: 6px 12px;          /* igual ao .btn */
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .btn-encaminhar:hover {
+        background-color: #27ae60;  /* tom mais escuro no hover */
+    }
+
+    /* Dropdown acompanha largura do botão */
+    .dropdown-encaminhar form {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: #fff;
+        border: 1px solid #ddd;
+        padding: 8px;
+        border-radius: 5px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+        min-width: 100%; /* acompanha o tamanho do botão */
     }
 
     .dropdown-encaminhar select {
@@ -248,20 +288,22 @@
       <a href="{{ url_for('baixar_pdf', filename=pdfs_por_protocolo[protocolo]) }}" class="btn btn-primary" style="margin-left: 10px;" target="_blank">Baixar Relatório PDF</a>
     {% endif %}
 
-    <div style="display:inline-block; position:relative; margin-left: 10px;">
-      <button type="button" class="btn btn-primary" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar</button>
-      <form id="form-encaminhar-{{ protocolo }}" method="get"
-        style="display:none; position:absolute; top:100%; left:0; background:#fff; border:1px solid #ddd; padding:10px; border-radius:5px; box-shadow:0 0 5px #ccc; z-index:10;">
-        <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')" style="margin-right: 5px;">
-          <option value="" disabled selected>Selecione setor</option>
-          {% for s in setores %}
-            {% if s != setor %}
-              <option value="{{ s }}">{{ s }}</option>
-            {% endif %}
-          {% endfor %}
-        </select>
-      </form>
+    <div class="dropdown-encaminhar" style="display:inline-block; position:relative; margin-left: 10px;">
+        <button type="button" class="btn-encaminhar" onclick="toggleDropdown('{{ protocolo }}')">
+                Encaminhar
+            </button>
+            <form id="form-encaminhar-{{ protocolo }}" method="get">
+                <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
+                <option value="" disabled selected>Setor</option>
+                {% for s in setores %}
+                    {% if s != setor %}
+                    <option value="{{ s }}">{{ s }}</option>
+                {% endif %}
+            {% endfor %}
+            </select>
+        </form>
     </div>
+
 
   </td>
 </tr>
@@ -309,4 +351,3 @@ document.addEventListener('click', function(event) {
 });
 </script>
 {% endblock %}
-
