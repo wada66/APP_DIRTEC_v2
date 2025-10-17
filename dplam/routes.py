@@ -128,18 +128,25 @@ def visualizar_processo(protocolo):
 @bp.route('/captar_processo/<string:protocolo>')
 def captar_processo(protocolo):
     cpf_tecnico = session.get("cpf_tecnico")
-    setor = session.get("setor")
-    if not cpf_tecnico or not setor:
+    setor_destino = session.get("setor")
+
+    if not cpf_tecnico or not setor_destino:
         return redirect(url_for("login"))
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
+
+            # Atualiza o técnico responsável na análise (sem registrar histórico aqui)
             cur.execute("""
-                UPDATE analise SET responsavel_analise = %s
+                UPDATE analise
+                SET responsavel_analise = %s
                 WHERE processo_protocolo = %s
             """, (cpf_tecnico, protocolo))
 
-    return redirect(url_for(f"{setor.lower()}.ambiente"))
+            conn.commit()
+            print(f"✅ Técnico {cpf_tecnico} atualizado para o processo {protocolo}")
+
+    return redirect(url_for(f"{setor_destino.lower()}.ambiente"))
 
 
 @bp.route('/preencher_tecnico/<string:protocolo>', methods=['GET', 'POST'])
@@ -518,7 +525,6 @@ def preencher_tecnico(protocolo):
         macrozonas=macrozonas
     )
 
-
 @bp.route('/encaminhar_processo/<string:protocolo>/<string:setor_destino>')
 def encaminhar_processo(protocolo, setor_destino):
     cpf_tecnico = session.get("cpf_tecnico")
@@ -528,16 +534,48 @@ def encaminhar_processo(protocolo, setor_destino):
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            # Remove o técnico atual da responsabilidade na análise (opcional, se quiser)
+            
+            # 1️⃣ Capturar estado atual antes de alterar
             cur.execute("""
-                UPDATE analise SET responsavel_analise = NULL
-                WHERE processo_protocolo = %s
+                SELECT p.setor_nome, a.responsavel_analise
+                FROM processo p
+                LEFT JOIN analise a ON a.processo_protocolo = p.protocolo
+                WHERE p.protocolo = %s
             """, (protocolo,))
-            # Atualiza o setor do processo para o setor destino
+            row = cur.fetchone()
+            setor_origem = row[0] if row else "SETOR_DESCONHECIDO"
+            tecnico_anterior = row[1] if row else None
+
+            # 2️⃣ Inserir histórico
             cur.execute("""
-                UPDATE processo SET setor_nome = %s WHERE protocolo = %s
-            """, (setor_destino, protocolo))
+                INSERT INTO historico (
+                    processo_protocolo,
+                    setor_origem,
+                    setor_destino,
+                    tecnico_responsavel_anterior,
+                    tecnico_novo_responsavel,
+                    data_encaminhamento,
+                    observacoes
+                )
+                VALUES (%s, %s, %s, %s, %s, NOW(), %s)
+            """, (
+                protocolo,
+                setor_origem,
+                setor_destino,
+                tecnico_anterior,
+                cpf_tecnico,
+                "Processo encaminhado"
+            ))
+
+            # 3️⃣ Atualizar processo e análise
+            cur.execute("UPDATE analise SET responsavel_analise = %s WHERE processo_protocolo = %s", (cpf_tecnico, protocolo))
+            cur.execute("UPDATE processo SET setor_nome = %s WHERE protocolo = %s", (setor_destino, protocolo))
+
+            conn.commit()
+            print(f"✅ Processo {protocolo} encaminhado de {setor_origem} para {setor_destino} ({tecnico_anterior} → {cpf_tecnico})")
+
     return redirect(url_for("dplam.ambiente"))
+
 
 
 
