@@ -1,5 +1,5 @@
 import os
-from flask import render_template, session, redirect, url_for, request
+from flask import flash, render_template, session, redirect, url_for, request
 from . import bp
 from db import get_db_connection
 
@@ -529,50 +529,60 @@ def preencher_tecnico(protocolo):
 def encaminhar_processo(protocolo, setor_destino):
     cpf_tecnico = session.get("cpf_tecnico")
     setor_atual = session.get("setor")
+    
     if not cpf_tecnico or not setor_atual:
         return redirect(url_for("login"))
 
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            
-            # 1️⃣ Capturar estado atual antes de alterar
-            cur.execute("""
-                SELECT p.setor_nome, a.responsavel_analise
-                FROM processo p
-                LEFT JOIN analise a ON a.processo_protocolo = p.protocolo
-                WHERE p.protocolo = %s
-            """, (protocolo,))
-            row = cur.fetchone()
-            setor_origem = row[0] if row else "SETOR_DESCONHECIDO"
-            tecnico_anterior = row[1] if row else None
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # 1️⃣ CAPTURAR ESTADO ATUAL
+                cur.execute("SELECT setor_nome FROM processo WHERE protocolo = %s", (protocolo,))
+                row = cur.fetchone()
+                if not row:
+                    flash("Processo não encontrado", "error")
+                    return redirect(url_for("dig.ambiente"))
+                
+                setor_origem = row[0]
+                print(f"🔍 DEBUG: Processo {protocolo} saindo de {setor_origem} para {setor_destino}")
 
-            # 2️⃣ Inserir histórico
-            cur.execute("""
-                INSERT INTO historico (
-                    processo_protocolo,
+                # 2️⃣ REGISTRAR NO HISTÓRICO
+                cur.execute("""
+                    INSERT INTO historico (
+                        processo_protocolo,
+                        setor_origem,
+                        setor_destino,
+                        tecnico_responsavel_anterior,
+                        tecnico_novo_responsavel,
+                        data_encaminhamento,
+                        observacoes
+                    )
+                    VALUES (%s, %s, %s, %s, %s, NOW(), %s)
+                """, (
+                    protocolo,
                     setor_origem,
                     setor_destino,
-                    tecnico_responsavel_anterior,
-                    tecnico_novo_responsavel,
-                    data_encaminhamento,
-                    observacoes
-                )
-                VALUES (%s, %s, %s, %s, %s, NOW(), %s)
-            """, (
-                protocolo,
-                setor_origem,
-                setor_destino,
-                tecnico_anterior,
-                cpf_tecnico,
-                "Processo encaminhado"
-            ))
+                    cpf_tecnico,  # Você que está encaminhando
+                    None,         # ⚠️ CRÍTICO: NULL no novo setor
+                    f"Encaminhado por {cpf_tecnico}"
+                ))
 
-            # 3️⃣ Atualizar processo e análise
-            cur.execute("UPDATE analise SET responsavel_analise = %s WHERE processo_protocolo = %s", (cpf_tecnico, protocolo))
-            cur.execute("UPDATE processo SET setor_nome = %s WHERE protocolo = %s", (setor_destino, protocolo))
+                # 3️⃣ ⚠️ CHAVE DA SOLUÇÃO: REPETIR EXATAMENTE O CÓDIGO QUE FUNCIONA
+                # Remove responsabilidade (CRÍTICO PARA A TRANSIÇÃO)
+                cur.execute("UPDATE analise SET responsavel_analise = NULL WHERE processo_protocolo = %s", (protocolo,))
+                
+                # Atualiza o setor
+                cur.execute("UPDATE processo SET setor_nome = %s WHERE protocolo = %s", (setor_destino, protocolo))
 
-            conn.commit()
-            print(f"✅ Processo {protocolo} encaminhado de {setor_origem} para {setor_destino} ({tecnico_anterior} → {cpf_tecnico})")
+                conn.commit()
+                
+                flash(f"✅ Processo {protocolo} encaminhado para {setor_destino}", "success")
+                print(f"🎉 SUCESSO: Processo {protocolo} de {setor_origem} para {setor_destino}")
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"❌ Erro ao encaminhar processo: {str(e)}", "error")
+        print(f"❌ Erro: {str(e)}")
 
     return redirect(url_for("dplam.ambiente"))
 

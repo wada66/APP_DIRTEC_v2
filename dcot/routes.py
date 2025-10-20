@@ -1,5 +1,5 @@
 import os
-from flask import render_template, session, redirect, url_for, request
+from flask import flash, render_template, session, redirect, url_for, request
 from . import bp
 from db import get_db_connection
 
@@ -523,21 +523,64 @@ def preencher_tecnico(protocolo):
 def encaminhar_processo(protocolo, setor_destino):
     cpf_tecnico = session.get("cpf_tecnico")
     setor_atual = session.get("setor")
+    
     if not cpf_tecnico or not setor_atual:
         return redirect(url_for("login"))
 
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            # Remove o técnico atual da responsabilidade na análise (opcional, se quiser)
-            cur.execute("""
-                UPDATE analise SET responsavel_analise = NULL
-                WHERE processo_protocolo = %s
-            """, (protocolo,))
-            # Atualiza o setor do processo para o setor destino
-            cur.execute("""
-                UPDATE processo SET setor_nome = %s WHERE protocolo = %s
-            """, (setor_destino, protocolo))
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # 1️⃣ CAPTURAR ESTADO ATUAL
+                cur.execute("SELECT setor_nome FROM processo WHERE protocolo = %s", (protocolo,))
+                row = cur.fetchone()
+                if not row:
+                    flash("Processo não encontrado", "error")
+                    return redirect(url_for("dig.ambiente"))
+                
+                setor_origem = row[0]
+                print(f"🔍 DEBUG: Processo {protocolo} saindo de {setor_origem} para {setor_destino}")
+
+                # 2️⃣ REGISTRAR NO HISTÓRICO
+                cur.execute("""
+                    INSERT INTO historico (
+                        processo_protocolo,
+                        setor_origem,
+                        setor_destino,
+                        tecnico_responsavel_anterior,
+                        tecnico_novo_responsavel,
+                        data_encaminhamento,
+                        observacoes
+                    )
+                    VALUES (%s, %s, %s, %s, %s, NOW(), %s)
+                """, (
+                    protocolo,
+                    setor_origem,
+                    setor_destino,
+                    cpf_tecnico,  # Você que está encaminhando
+                    None,         # ⚠️ CRÍTICO: NULL no novo setor
+                    f"Encaminhado por {cpf_tecnico}"
+                ))
+
+                # 3️⃣ ⚠️ CHAVE DA SOLUÇÃO: REPETIR EXATAMENTE O CÓDIGO QUE FUNCIONA
+                # Remove responsabilidade (CRÍTICO PARA A TRANSIÇÃO)
+                cur.execute("UPDATE analise SET responsavel_analise = NULL WHERE processo_protocolo = %s", (protocolo,))
+                
+                # Atualiza o setor
+                cur.execute("UPDATE processo SET setor_nome = %s WHERE protocolo = %s", (setor_destino, protocolo))
+
+                conn.commit()
+                
+                flash(f"✅ Processo {protocolo} encaminhado para {setor_destino}", "success")
+                print(f"🎉 SUCESSO: Processo {protocolo} de {setor_origem} para {setor_destino}")
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"❌ Erro ao encaminhar processo: {str(e)}", "error")
+        print(f"❌ Erro: {str(e)}")
+
     return redirect(url_for("dcot.ambiente"))
+
+
 
 
 
