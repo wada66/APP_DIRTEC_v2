@@ -225,6 +225,11 @@ def preencher_tecnico(protocolo):
                         valor_formulario = formulario.get(campo)
                         valor_atual = processo_dict.get(campo)
                         
+                         # 🎯 🔥 TRATAMENTO PARA VALORES VAZIOS EM CAMPOS CRÍTICOS
+                        if valor_formulario == '':
+                            if campo in ['inicio_localizacao', 'fim_localizacao', 'responsavel_localizacao']:
+                                valor_formulario = None
+                        
                         # Só atualiza se o campo foi preenchido no formulário E é diferente do atual
                         if valor_formulario is not None and valor_formulario != valor_atual:
                             campos_para_atualizar.append(f"{campo} = %s")
