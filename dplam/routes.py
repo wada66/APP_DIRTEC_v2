@@ -128,25 +128,42 @@ def visualizar_processo(protocolo):
 @bp.route('/captar_processo/<string:protocolo>')
 def captar_processo(protocolo):
     cpf_tecnico = session.get("cpf_tecnico")
-    setor_destino = session.get("setor")
-
-    if not cpf_tecnico or not setor_destino:
+    setor = session.get("setor")
+    if not cpf_tecnico or not setor:
         return redirect(url_for("login"))
 
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # 1️⃣ ATUALIZAR O RESPONSÁVEL NA ANÁLISE (já existente)
+                cur.execute("""
+                    UPDATE analise SET responsavel_analise = %s
+                    WHERE processo_protocolo = %s
+                """, (cpf_tecnico, protocolo))
 
-            # Atualiza o técnico responsável na análise (sem registrar histórico aqui)
-            cur.execute("""
-                UPDATE analise
-                SET responsavel_analise = %s
-                WHERE processo_protocolo = %s
-            """, (cpf_tecnico, protocolo))
+                # 2️⃣ 🎯 ÚNICA NOVIDADE: Atualizar o último registro do histórico
+                cur.execute("""
+                    UPDATE historico 
+                    SET tecnico_novo_responsavel = %s
+                    WHERE processo_protocolo = %s 
+                    AND id_historico = (
+                        SELECT id_historico FROM historico 
+                        WHERE processo_protocolo = %s 
+                        ORDER BY data_encaminhamento DESC 
+                        LIMIT 1
+                    )
+                """, (cpf_tecnico, protocolo, protocolo))
 
-            conn.commit()
-            print(f"✅ Técnico {cpf_tecnico} atualizado para o processo {protocolo}")
+                conn.commit()
+                flash(f"✅ Processo {protocolo} captado com sucesso!", "success")
+                print(f"✅ Captura: {cpf_tecnico} é o novo responsável pelo processo {protocolo}")
 
-    return redirect(url_for(f"{setor_destino.lower()}.ambiente"))
+    except Exception as e:
+        conn.rollback()
+        flash(f"❌ Erro ao captar processo: {str(e)}", "error")
+        print(f"❌ Erro na captura: {str(e)}")
+
+    return redirect(url_for(f"{setor.lower()}.ambiente"))
 
 
 @bp.route('/preencher_tecnico/<string:protocolo>', methods=['GET', 'POST'])
