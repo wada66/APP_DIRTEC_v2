@@ -476,21 +476,7 @@
             <button type="submit" name="salvar" value="1">Salvar</button>
             <button type="submit" name="finalizar" value="1">Finalizar</button>
             <button type="reset">Limpar</button>
-            <button type="button" id="btn-encaminhar">Encaminhar</button>
         </div>
-
-        <div id="setor-encaminhar-container" style="display:none; margin-top:10px;">
-        <label>Escolha o setor para encaminhar:
-            <select id="setor" name="setor_destino">
-                {% for nome_setor in setor %}
-                    <option value="{{ nome_setor }}">{{ nome_setor }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button type="submit" name="encaminhar" value="1" id="confirmar-encaminhar">Confirmar</button>
-        </div>
-
-
     </form>
 </div>
 
@@ -641,13 +627,6 @@ $(function () {
         $('#cpf_requerente, #cnpj_requerente').prop('required', false).val('');
     }
 }).trigger('change');
-
-  $(function() {
-        $('#btn-encaminhar').click(function() {
-            $('#setor-encaminhar-container').toggle();
-        });
-    });
-
 });
 </script>
 
