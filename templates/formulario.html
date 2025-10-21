@@ -200,7 +200,7 @@
         <label>Número da Pasta: <input type="text" name="numero_pasta"></label>
 
         <label>Solicitação do Requerente:
-            <select name="solicitacao_requerente" id= "solicitacao_requerente" required>
+            <select name="solicitacao_requerente" id= "solicitacao_requerente">
                 <option value="">--Selecione--</option>
                 {% for tipo_solicitacao_resposta in solicitacao_resposta %}
                     <option value="{{ tipo_solicitacao_resposta }}">{{ tipo_solicitacao_resposta }}</option>
@@ -209,7 +209,7 @@
         </label>
 
         <label>Resposta do Departamento:
-            <select name="resposta_departamento" id= "resposta_departamento" required>
+            <select name="resposta_departamento" id= "resposta_departamento">
                 <option value="">--Selecione--</option>
                 {% for tipo_solicitacao_resposta in solicitacao_resposta %}
                     <option value="{{ tipo_solicitacao_resposta }}">{{ tipo_solicitacao_resposta }}</option>
@@ -218,7 +218,7 @@
         </label>
 
         <label>Tramitação:
-             <select name="tramitacao" id= "tramitacao" required>
+             <select name="tramitacao" id= "tramitacao">
                 <option value="">--Selecione--</option>
                 {% for tipo_tramitacao in tramitacao %}
                     <option value="{{ tipo_tramitacao }}">{{ tipo_tramitacao }}</option>
@@ -295,10 +295,10 @@
         <hr>
 
         <h2>Informações do Requerente</h2>
-        <label>Nome do Requerente: <input type="text" name="nome_requerente" required></label>
+        <label>Nome do Requerente: <input type="text" name="nome_requerente"></label>
 
         <label>Tipo de Requerente:
-            <select name="tipo_de_requerente" id="tipo_de_requerente" required>
+            <select name="tipo_de_requerente" id="tipo_de_requerente">
                 <option value="">--Selecione--</option>
                 <option value="PESSOA FÍSICA">Pessoa Física</option>
                 <option value="PESSOA JURÍDICA">Pessoa Jurídica</option>
@@ -319,10 +319,10 @@
 
         <label>Nome do Proprietário: <input type="text" name="nome_proprietario"></label>
         <label>CPF/CNPJ do Proprietário: <input type="text" name="cpf_cnpj_proprietario" maxlength="14"></label>
-        <label>Matrícula do Imóvel: <input type="text" name="matricula_imovel"></label>
+        <label>Matrícula do Imóvel: <input type="text" name="matricula_imovel" required></label>
 
         <label>Prioridade:
-            <select name="prioridade" id="prioridade" required>
+            <select name="prioridade" id="prioridade">
                 <option value="">--Selecione--</option>
                  {% for tipo_prioridade in prioridade %}
                     <option value="{{ tipo_prioridade }}">{{ tipo_prioridade }}</option>
@@ -331,7 +331,7 @@
         </label>
 
         <label>Complexidade:
-            <select name="complexidade" id="complexidade" required>
+            <select name="complexidade" id="complexidade">
                 <option value="">--Selecione--</option>
                 {% for nivel_complexidade in complexidade %}
                     <option value="{{ nivel_complexidade }}">{{ nivel_complexidade }}</option>

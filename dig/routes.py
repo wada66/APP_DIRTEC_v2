@@ -225,10 +225,21 @@ def preencher_tecnico(protocolo):
                         valor_formulario = formulario.get(campo)
                         valor_atual = processo_dict.get(campo)
                         
-                        # 🎯 🔥 TRATAMENTO PARA VALORES VAZIOS EM CAMPOS CRÍTICOS
+                       # 🎯 🔥 TRATAMENTO PARA VALORES VAZIOS EM CAMPOS CRÍTICOS
                         if valor_formulario == '':
-                            if campo in ['inicio_localizacao', 'fim_localizacao', 'responsavel_localizacao']:
+                            if campo in [
+                                # 🎯 CAMPOS NOVOS IDENTIFICADOS NOS ERROS
+                                'requerente', 'resposta_departamento', 'solicitacao_requerente', 'tramitacao',
+                                
+                                # 🎯 CAMPOS QUE JÁ ESTAVAM AQUI
+                                'inicio_localizacao', 'fim_localizacao', 'responsavel_localizacao',
+                                
+                                # 🎯 OUTROS CAMPOS QUE SÃO SELECTS/CHAVES ESTRANGEIRAS
+                                'tipologia', 'municipio', 'prioridade', 'complexidade', 'sistema_viario',
+                                'zona_urbana', 'macrozona_municipal', 'apa', 'utp', 'curva_inundacao', 'faixa_servidao'
+                            ]:
                                 valor_formulario = None
+                                print(f"🔧 Campo {campo} convertido de vazio para NULL")
                         
                         # Só atualiza se o campo foi preenchido no formulário E é diferente do atual
                         if valor_formulario is not None and valor_formulario != valor_atual:

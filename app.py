@@ -175,6 +175,7 @@ def inserir():
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
+                
                 # Inserir requerente
                 cpf = formulario.get("cpf_requerente")
                 cnpj = formulario.get("cnpj_requerente")
@@ -186,6 +187,25 @@ def inserir():
                         VALUES (%s, %s, %s) ON CONFLICT (cpf_cnpj_requerente) DO NOTHING
                     """, (cpf_cnpj_requerente, formulario["nome_requerente"], formulario["tipo_de_requerente"]))
 
+
+                # 🎯 🔥 POR ESTE CÓDIGO CORRIGIDO:
+                cpf = formulario.get("cpf_requerente")
+                cnpj = formulario.get("cnpj_requerente")
+                cpf_cnpj_requerente = cpf or cnpj  # pega o que estiver preenchido
+                nome_requerente = formulario.get("nome_requerente")
+                tipo_requerente = formulario.get("tipo_de_requerente")
+
+                # 🎯 SE NÃO HOUVER DADOS DO REQUERENTE, GARANTE QUE SERÁ NULL
+                if not cpf_cnpj_requerente or not nome_requerente or not tipo_requerente:
+                    cpf_cnpj_requerente = None  # 🎯 CRÍTICO: ISSO RESOLVE O ERRO
+                    print("🔧 Requerente não preenchido - campo será NULL no processo")
+                else:
+                    # Só insere na tabela requerente se tiver dados completos
+                    cur.execute("""
+                        INSERT INTO requerente (cpf_cnpj_requerente, nome_requerente, tipo_requerente)
+                        VALUES (%s, %s, %s) ON CONFLICT (cpf_cnpj_requerente) DO NOTHING
+                    """, (cpf_cnpj_requerente, nome_requerente, tipo_requerente))
+                    print(f"✅ Requerente inserido: {nome_requerente}")
 
                 # Inserir proprietário
                 if formulario.get("cpf_cnpj_proprietario") and formulario.get("nome_proprietario"):
@@ -347,7 +367,7 @@ def inserir():
                     "SELECT protocolo FROM processo WHERE protocolo = %s", (formulario.get("protocolo"),)
                 )
                 existe_processo = cur.fetchone()
-
+    
                 if existe_processo:
                     # Atualizar processo e analise
                     cur.execute(
@@ -376,9 +396,9 @@ def inserir():
                             formulario.get("observacoes"),
                             formulario.get("matricula_imovel"),
                             formulario.get("numero_pasta") or None,
-                            formulario.get("solicitacao_requerente"),
-                            formulario.get("resposta_departamento"),
-                            formulario.get("tramitacao"),
+                            formulario.get("solicitacao_requerente") or None,
+                            formulario.get("resposta_departamento") or None,
+                            formulario.get("tramitacao") or None,
                             session.get("setor"),
                             formulario.get("tipologia"),
                             formulario.get("situacao_localizacao"),
@@ -456,9 +476,9 @@ def inserir():
                             formulario.get("observacoes"),
                             formulario.get("matricula_imovel"),
                             formulario.get("numero_pasta") or None,
-                            formulario.get("solicitacao_requerente"),
-                            formulario.get("resposta_departamento"),
-                            formulario.get("tramitacao"),
+                            formulario.get("solicitacao_requerente") or None,
+                            formulario.get("resposta_departamento") or None,
+                            formulario.get("tramitacao") or None,
                             session.get("setor"),
                             formulario.get("tipologia"),
                             formulario.get("situacao_localizacao"),
