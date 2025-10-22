@@ -218,7 +218,7 @@ def preencher_tecnico(protocolo):
                         "observacoes", "pasta_numero", "solicitacao_requerente", "resposta_departamento",
                         "tramitacao", "tipologia", "situacao_localizacao", "responsavel_localizacao", 
                         "inicio_localizacao", "fim_localizacao", "nome_ou_loteamento_do_condominio_a_ser_aprovado", 
-                        "interesse_social", "perimetro_urbano", "matricula_imovel"
+                        "interesse_social", "perimetro_urbano", "matricula_imovel", "municipio"
                     ]
                     
                     for campo in campos_processo_permitidos:
