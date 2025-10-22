@@ -218,13 +218,27 @@ def preencher_tecnico(protocolo):
                         "observacoes", "pasta_numero", "solicitacao_requerente", "resposta_departamento",
                         "tramitacao", "tipologia", "situacao_localizacao", "responsavel_localizacao", 
                         "inicio_localizacao", "fim_localizacao", "nome_ou_loteamento_do_condominio_a_ser_aprovado", 
-                        "interesse_social", "perimetro_urbano", "matricula_imovel"
+                        "interesse_social", "perimetro_urbano", "matricula_imovel", "municipio"
                     ]
                     
                     for campo in campos_processo_permitidos:
                         valor_formulario = formulario.get(campo)
                         valor_atual = processo_dict.get(campo)
                         
+                        if campo == 'pasta_numero' and valor_formulario and valor_formulario != '':
+                            try:
+                                # Tenta inserir a pasta se não existir
+                                cur.execute("""
+                                    INSERT INTO pasta (numero_pasta) 
+                                    VALUES (%s) 
+                                    ON CONFLICT (numero_pasta) DO NOTHING
+                                """, (valor_formulario,))
+                                print(f"✅ Pasta {valor_formulario} criada/verificada")
+                            except Exception as e:
+                                print(f"❌ Erro ao criar pasta {valor_formulario}: {e}")
+                                # Se não conseguir criar, mantém o valor mas pode dar erro na FK
+                                # Ou pode definir como None: valor_formulario = None
+                                                                
                        # 🎯 🔥 TRATAMENTO PARA VALORES VAZIOS EM CAMPOS CRÍTICOS
                         if valor_formulario == '':
                             if campo in [
@@ -519,7 +533,6 @@ def preencher_tecnico(protocolo):
             cols = [desc[0] for desc in cur.description]
             processo = dict(zip(cols, row))
             
-
             imovel_municipio = None
 
             # verifica se o processo tem alguma referência ao imóvel

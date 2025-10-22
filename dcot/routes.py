@@ -224,9 +224,25 @@ def preencher_tecnico(protocolo):
                         valor_formulario = formulario.get(campo)
                         valor_atual = processo_dict.get(campo)
                         
-                         # 🎯 🔥 TRATAMENTO PARA VALORES VAZIOS EM CAMPOS CRÍTICOS
+                          # 🎯 TRATAMENTO ESPECIAL PARA pasta_numero - CRIAR SE NÃO EXISTIR
+                        if campo == 'pasta_numero' and valor_formulario and valor_formulario != '':
+                            try:
+                                # Tenta inserir a pasta se não existir
+                                cur.execute("""
+                                    INSERT INTO pasta (numero_pasta) 
+                                    VALUES (%s) 
+                                    ON CONFLICT (numero_pasta) DO NOTHING
+                                """, (valor_formulario,))
+                                print(f"✅ Pasta {valor_formulario} criada/verificada")
+                            except Exception as e:
+                                print(f"❌ Erro ao criar pasta {valor_formulario}: {e}")
+                                # Se não conseguir criar, mantém o valor mas pode dar erro na FK
+                                # Ou pode definir como None: valor_formulario = None
+                        
+                        # 🎯 TRATAMENTO NORMAL PARA OS OUTROS CAMPOS
                         if valor_formulario == '':
-                            if campo in ['inicio_localizacao', 'fim_localizacao', 'responsavel_localizacao']:
+                            if campo in ['solicitacao_requerente', 'resposta_departamento', 'tramitacao', 
+                                        'tipologia', 'responsavel_localizacao', 'inicio_localizacao', 'fim_localizacao']:
                                 valor_formulario = None
                         
                         # Só atualiza se o campo foi preenchido no formulário E é diferente do atual

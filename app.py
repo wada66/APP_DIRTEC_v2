@@ -256,15 +256,6 @@ def inserir():
                         ON CONFLICT DO NOTHING
                     """, (formulario["matricula_imovel"], formulario["municipio"]))
 
-                # Depois de inserir imóvel
-                if formulario.get("matricula_imovel") and formulario.get("municipio"):
-                    cur.execute("""
-                        INSERT INTO imovel_municipio (imovel_matricula, municipio_nome)
-                        VALUES (%s, %s)
-                        ON CONFLICT DO NOTHING
-                    """, (formulario["matricula_imovel"], formulario["municipio"]))
-
-                # 🆕 🆕 🆕 ADICIONE AQUI 🆕 🆕 🆕
                 # INSERIR NA TABELA PROPRIETARIO_IMOVEL
                 imovel_matricula = formulario.get("matricula_imovel")
                 proprietario_cpf_cnpj = formulario.get("cpf_cnpj_proprietario")

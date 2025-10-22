@@ -642,20 +642,7 @@ function criarBotaoEditarUniversal(campoId, botaoId, textoBotao = 'Editar') {
         }
     }
     
-    // Eventos para recongelar
-     /*
-    if (campo.tagName === 'SELECT') {
-        campo.addEventListener('change', congelarCampo);
-    } else if (campo.type === 'checkbox') {
-        campo.addEventListener('change', function() {
-            // Para checkboxes, congela imediatamente após mudança
-            setTimeout(congelarCampo, 100);
-        });
-    } else {
-        campo.addEventListener('blur', congelarCampo);
-    } 
-    */
-    
+
     // Estado inicial - CONGELA se estiver preenchido
     if (estaPreenchido) {
         campo.disabled = true;
@@ -862,7 +849,74 @@ document.addEventListener('click', function(e) {
         }, 500);
     }
 });
+// ========== JAVASCRIPT PARA ATUALIZAR ZONAS/MACROZONAS ==========
+function carregarZonasParaMunicipio(municipio) {
+    if (!municipio) {
+        document.getElementById('zona_urbana').innerHTML = '<option value="">--Selecione--</option>';
+        document.getElementById('macrozona_municipal').innerHTML = '<option value="">--Selecione--</option>';
+        return;
+    }
 
+    console.log(`🔄 Carregando zonas para município: ${municipio}`);
+
+    // Buscar Zonas Urbanas
+    fetch(`/get_zonas_urbanas/${encodeURIComponent(municipio)}`)
+        .then(response => response.json())
+        .then(zonas => {
+            const zonaSelect = document.getElementById('zona_urbana');
+            const zonaAtual = '{{ processo.zona_urbana or "" }}';
+            
+            zonaSelect.innerHTML = '<option value="">--Selecione--</option>';
+            zonas.forEach(zona => {
+                const option = document.createElement('option');
+                option.value = zona;
+                option.textContent = zona;
+                if (zona === zonaAtual) {
+                    option.selected = true;
+                }
+                zonaSelect.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Erro ao carregar zonas:', error));
+
+    // Buscar Macrozonas
+    fetch(`/get_macrozonas/${encodeURIComponent(municipio)}`)
+        .then(response => response.json())
+        .then(macrozonas => {
+            const macrozonaSelect = document.getElementById('macrozona_municipal');
+            const macrozonaAtual = '{{ processo.macrozona_municipal or "" }}';
+            
+            macrozonaSelect.innerHTML = '<option value="">--Selecione--</option>';
+            macrozonas.forEach(macrozona => {
+                const option = document.createElement('option');
+                option.value = macrozona;
+                option.textContent = macrozona;
+                if (macrozona === macrozonaAtual) {
+                    option.selected = true;
+                }
+                macrozonaSelect.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Erro ao carregar macrozonas:', error));
+}
+
+// Event listener para município
+document.addEventListener('DOMContentLoaded', function() {
+    const municipioSelect = document.getElementById('municipio');
+    
+    if (municipioSelect) {
+        municipioSelect.addEventListener('change', function() {
+            carregarZonasParaMunicipio(this.value);
+        });
+
+        // Carrega zonas automaticamente se já houver município
+        if (municipioSelect.value) {
+            setTimeout(() => {
+                carregarZonasParaMunicipio(municipioSelect.value);
+            }, 500);
+        }
+    }
+});
 </script>
 </body>
 </html>
