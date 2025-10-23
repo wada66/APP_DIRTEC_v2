@@ -343,37 +343,53 @@ def preencher_tecnico(protocolo):
                 else:
                     print("⏭️  Condição NÃO atendida - pulando")
                     
-                    # 5. ATUALIZAR ZONAS URBANAS/MACROZONAS (apenas se preenchidas)
-                    zona_urbana = formulario.get("zona_urbana")
-                    macrozona_municipal = formulario.get("macrozona_municipal")
-                    
-                    if zona_urbana or macrozona_municipal:
-                        # Buscar IDs das zonas
-                        id_zona_urbana = None
-                        id_macrozona = None
-                        
-                        with conn.cursor() as cur:
-                            if zona_urbana:
-                                cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (zona_urbana,))
-                                result = cur.fetchone()
-                                id_zona_urbana = result[0] if result else None
-                            
-                            if macrozona_municipal:
-                                cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (macrozona_municipal,))
-                                result = cur.fetchone()
-                                id_macrozona = result[0] if result else None
-                        
-                        # Atualizar tabela de relacionamento
-                        with conn.cursor() as cur:
-                            cur.execute("""
-                                INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id) 
-                                VALUES (%s, %s, %s)
-                                ON CONFLICT (imovel_matricula) 
-                                DO UPDATE SET 
-                                    zona_urbana_id = EXCLUDED.zona_urbana_id, 
-                                    macrozona_id = EXCLUDED.macrozona_id
-                            """, (matricula_imovel, id_zona_urbana, id_macrozona))
+                # 5. ATUALIZAR ZONAS URBANAS/MACROZONAS (sempre que houver matrícula)
+                zona_urbana = formulario.get("zona_urbana")
+                macrozona_municipal = formulario.get("macrozona_municipal")
 
+                # 🚨 CONVERTER VAZIOS PARA None (CRÍTICO!)
+                if zona_urbana == '': 
+                    zona_urbana = None
+                    print("🔧 Zona urbana convertida de vazio para NULL")
+                if macrozona_municipal == '': 
+                    macrozona_municipal = None  
+                    print("🔧 Macrozona municipal convertida de vazio para NULL")
+
+                print(f"🔍 DEBUG ZONAS - Zona: '{zona_urbana}', Macrozona: '{macrozona_municipal}', Matrícula: '{matricula_imovel}'")
+
+                # 🎯 SEMPRE tenta atualizar se tem matrícula
+                if matricula_imovel:
+                    print("🔄 Atualizando zonas/macrozonas...")
+                    
+                    # Buscar IDs das zonas (mesmo que sejam None)
+                    id_zona_urbana = None
+                    id_macrozona = None
+                    
+                    with conn.cursor() as cur:
+                        if zona_urbana:  # Só busca ID se não for None
+                            cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (zona_urbana,))
+                            result = cur.fetchone()
+                            id_zona_urbana = result[0] if result else None
+                        
+                        if macrozona_municipal:  # Só busca ID se não for None
+                            cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (macrozona_municipal,))
+                            result = cur.fetchone()
+                            id_macrozona = result[0] if result else None
+                    
+                    # Atualizar tabela de relacionamento
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id) 
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (imovel_matricula) 
+                            DO UPDATE SET 
+                                zona_urbana_id = EXCLUDED.zona_urbana_id, 
+                                macrozona_id = EXCLUDED.macrozona_id
+                        """, (matricula_imovel, id_zona_urbana, id_macrozona))
+                    
+                    print("✅ Zonas/Macrozonas atualizadas!")
+                else:
+                    print("⏭️ Zonas/macrozonas não atualizadas - matrícula faltando")
                 # 6. ATUALIZAR REQUERENTE (apenas se dados foram preenchidos)
                 cpf_requerente = formulario.get("cpf_requerente")
                 cnpj_requerente = formulario.get("cnpj_requerente")
