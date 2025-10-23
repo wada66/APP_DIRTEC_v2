@@ -220,39 +220,28 @@ def preencher_tecnico(protocolo):
                         "observacoes", "pasta_numero", "solicitacao_requerente", "resposta_departamento",
                         "tramitacao", "tipologia", "situacao_localizacao", "responsavel_localizacao", 
                         "inicio_localizacao", "fim_localizacao", "nome_ou_loteamento_do_condominio_a_ser_aprovado", 
-                        "interesse_social", "perimetro_urbano", "matricula_imovel", "municipio"
+                        "interesse_social", "perimetro_urbano", "matricula_imovel"
                     ]
                     
                     for campo in campos_processo_permitidos:
                         valor_formulario = formulario.get(campo)
                         valor_atual = processo_dict.get(campo)
                         
-                         # 🎯 TRATAMENTO ESPECIAL PARA pasta_numero - CRIAR SE NÃO EXISTIR
-                        if campo == 'pasta_numero' and valor_formulario and valor_formulario != '':
-                            try:
-                                # Tenta inserir a pasta se não existir
-                                cur.execute("""
-                                    INSERT INTO pasta (numero_pasta) 
-                                    VALUES (%s) 
-                                    ON CONFLICT (numero_pasta) DO NOTHING
-                                """, (valor_formulario,))
-                                print(f"✅ Pasta {valor_formulario} criada/verificada")
-                            except Exception as e:
-                                print(f"❌ Erro ao criar pasta {valor_formulario}: {e}")
-                                # Se não conseguir criar, mantém o valor mas pode dar erro na FK
-                                # Ou pode definir como None: valor_formulario = None
-                        
-                        # 🎯 TRATAMENTO NORMAL PARA OS OUTROS CAMPOS
+                       # 🎯 🔥 TRATAMENTO PARA VALORES VAZIOS EM CAMPOS CRÍTICOS
                         if valor_formulario == '':
-                            if campo in ['solicitacao_requerente', 'resposta_departamento', 'tramitacao', 
-                                        'tipologia', 'responsavel_localizacao', 'inicio_localizacao', 'fim_localizacao']:
+                            if campo in [
+                                # 🎯 CAMPOS NOVOS IDENTIFICADOS NOS ERROS
+                                'requerente', 'resposta_departamento', 'solicitacao_requerente', 'tramitacao',
+                                
+                                # 🎯 CAMPOS QUE JÁ ESTAVAM AQUI
+                                'inicio_localizacao', 'fim_localizacao', 'responsavel_localizacao',
+                                
+                                # 🎯 OUTROS CAMPOS QUE SÃO SELECTS/CHAVES ESTRANGEIRAS
+                                'tipologia', 'municipio', 'prioridade', 'complexidade', 'sistema_viario',
+                                'zona_urbana', 'macrozona_municipal', 'apa', 'utp', 'curva_inundacao', 'faixa_servidao'
+                            ]:
                                 valor_formulario = None
-                        
-                        # Só atualiza se o campo foi preenchido no formulário E é diferente do atual
-                        if valor_formulario is not None and valor_formulario != valor_atual:
-                            campos_para_atualizar.append(f"{campo} = %s")
-                            valores_para_atualizar.append(valor_formulario)
-                            print(f"📝 Campo {campo} será atualizado: '{valor_atual}' -> '{valor_formulario}'")
+                                print(f"🔧 Campo {campo} convertido de vazio para NULL")
                     
                     # Executar UPDATE apenas se houver campos para atualizar
                     if campos_para_atualizar:
@@ -265,7 +254,8 @@ def preencher_tecnico(protocolo):
                         print("ℹ️ Nenhum campo da tabela processo para atualizar")
 
                 # 2. OBTER MATRÍCULA DO IMÓVEL (chave para relacionamentos)
-                matricula_imovel = formulario.get("matricula_imovel") or processo_dict.get("matricula_imovel")
+                matricula_imovel = formulario.get("imovel_matricula") or processo_dict.get("imovel_matricula")
+                municipio_formulario = formulario.get("municipio")
                 
                 if matricula_imovel:
                     # 3. ATUALIZAR TABELA IMOVEL (apenas campos preenchidos)
@@ -286,27 +276,54 @@ def preencher_tecnico(protocolo):
                         }
                         
                         for campo_imovel, valor_formulario in campos_imovel.items():
+                            # 🚨 CONVERTE STRING VAZIA PARA None (DEVE VIR ANTES!)
+                            if valor_formulario == '':
+                                valor_formulario = None
+                                print(f"🔧 Campo {campo_imovel} convertido de vazio para NULL")
+                            
+                            # DEPOIS faz a verificação normal
                             valor_atual = imovel_dict.get(campo_imovel)
                             if valor_formulario is not None and valor_formulario != valor_atual:
                                 campos_imovel_para_atualizar.append(f"{campo_imovel} = %s")
                                 valores_imovel_para_atualizar.append(valor_formulario)
-                        
+                                
                         # Executar UPDATE do imóvel se houver campos para atualizar
                         if campos_imovel_para_atualizar:
                             campos_sql_imovel = ", ".join(campos_imovel_para_atualizar)
                             valores_imovel_para_atualizar.append(matricula_imovel)
                             cur.execute(f"UPDATE imovel SET {campos_sql_imovel} WHERE matricula_imovel = %s", valores_imovel_para_atualizar)
                     
-                    # 4. ATUALIZAR IMOVEL_MUNICIPIO (apenas se município foi preenchido)
-                    municipio_formulario = formulario.get("municipio")
-                    if municipio_formulario:
+                     # 4. ATUALIZAR IMOVEL_MUNICIPIO 
+                if municipio_formulario and matricula_imovel:
+                    print("🚀 CONDIÇÃO ATENDIDA - Vai atualizar!")
+                    try:
                         with conn.cursor() as cur:
-                            cur.execute("""
-                                INSERT INTO imovel_municipio (imovel_matricula, municipio_nome) 
-                                VALUES (%s, %s)
-                                ON CONFLICT (imovel_matricula) 
-                                DO UPDATE SET municipio_nome = EXCLUDED.municipio_nome
-                            """, (matricula_imovel, municipio_formulario))
+                            # DEBUG da tabela
+                            cur.execute("SELECT * FROM imovel_municipio WHERE imovel_matricula = %s", (matricula_imovel,))
+                            existente = cur.fetchone()
+                            print(f"📊 Registro existente: {existente}")
+                            
+                            # Tentativa 1: DELETE + INSERT
+                            cur.execute("DELETE FROM imovel_municipio WHERE imovel_matricula = %s", (matricula_imovel,))
+                            print("🗑️  Delete executado")
+                            
+                            cur.execute(
+                                "INSERT INTO imovel_municipio (imovel_matricula, municipio_nome) VALUES (%s, %s)",
+                                (matricula_imovel, municipio_formulario)
+                            )
+                            print("✅ INSERT executado")
+                            
+                            # Verifica se inseriu
+                            cur.execute("SELECT * FROM imovel_municipio WHERE imovel_matricula = %s", (matricula_imovel,))
+                            verificado = cur.fetchone()
+                            print(f"🔍 Registro verificado: {verificado}")
+                            
+                    except Exception as e:
+                        print(f"❌ ERRO: {e}")
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    print("⏭️  Condição NÃO atendida - pulando")
                     
                     # 5. ATUALIZAR ZONAS URBANAS/MACROZONAS (apenas se preenchidas)
                     zona_urbana = formulario.get("zona_urbana")
