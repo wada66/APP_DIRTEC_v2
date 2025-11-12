@@ -165,6 +165,7 @@ def captar_processo(protocolo):
 
     return redirect(url_for(f"{setor.lower()}.ambiente"))
 
+
 @bp.route('/preencher_tecnico/<string:protocolo>', methods=['GET', 'POST'])
 def preencher_tecnico(protocolo):
     cpf_tecnico = session.get("cpf_tecnico")
@@ -190,13 +191,22 @@ def preencher_tecnico(protocolo):
         ]
 
         def to_bool(val):
-            return val == 'on' or val == 'true' or val == '1'
+            if val == 'false' or val == 'False' or val == '0':
+                return False
+            return val == 'on' or val == 'true' or val == '1' or val == 'True'
 
-        # Normaliza checkbox para booleano real
-        for chk in ["interesse_social", "lei_inclui_perimetro_urbano",
-                    "possui_apa", "possui_utp", "possui_manancial",
-                    "possui_curva", "possui_faixa", "possui_diretriz"]:
-            formulario[chk] = to_bool(formulario.get(chk, ''))
+        # Normaliza checkbox para booleano real - VERSÃO CORRIGIDA
+        checkbox_fields = ["interesse_social", "lei_inclui_perimetro_urbano",
+                        "possui_apa", "possui_utp", "possui_manancial",
+                        "possui_curva", "possui_faixa", "possui_diretriz"]
+
+        for chk in checkbox_fields:
+            if chk not in formulario:
+                formulario[chk] = False
+                print(f"🔧 Checkbox {chk} não enviado - definido como False")
+            else:
+                formulario[chk] = to_bool(formulario[chk])
+                print(f"🔧 Checkbox {chk} processado: {formulario[chk]}")
 
         try:
             with get_db_connection() as conn:
@@ -224,7 +234,6 @@ def preencher_tecnico(protocolo):
                         valor_formulario = formulario.get(campo)
                         valor_atual = processo_dict.get(campo)
                         
-                          # 🎯 TRATAMENTO ESPECIAL PARA pasta_numero - CRIAR SE NÃO EXISTIR
                         if campo == 'pasta_numero' and valor_formulario and valor_formulario != '':
                             try:
                                 # Tenta inserir a pasta se não existir
@@ -238,8 +247,8 @@ def preencher_tecnico(protocolo):
                                 print(f"❌ Erro ao criar pasta {valor_formulario}: {e}")
                                 # Se não conseguir criar, mantém o valor mas pode dar erro na FK
                                 # Ou pode definir como None: valor_formulario = None
-                        
-                        # 🎯 🔥 TRATAMENTO PARA VALORES VAZIOS EM CAMPOS CRÍTICOS
+                                                                
+                       # 🎯 🔥 TRATAMENTO PARA VALORES VAZIOS EM CAMPOS CRÍTICOS
                         if valor_formulario == '':
                             if campo in [
                                 # 🎯 CAMPOS NOVOS IDENTIFICADOS NOS ERROS
@@ -311,7 +320,7 @@ def preencher_tecnico(protocolo):
                             valores_imovel_para_atualizar.append(matricula_imovel)
                             cur.execute(f"UPDATE imovel SET {campos_sql_imovel} WHERE matricula_imovel = %s", valores_imovel_para_atualizar)
                     
-                                    # 4. ATUALIZAR IMOVEL_MUNICIPIO 
+                # 4. ATUALIZAR IMOVEL_MUNICIPIO 
                 if municipio_formulario and matricula_imovel:
                     print("🚀 CONDIÇÃO ATENDIDA - Vai atualizar!")
                     try:
@@ -390,31 +399,59 @@ def preencher_tecnico(protocolo):
                     print("✅ Zonas/Macrozonas atualizadas!")
                 else:
                     print("⏭️ Zonas/macrozonas não atualizadas - matrícula faltando")
-
+                    
                 # 6. ATUALIZAR REQUERENTE (apenas se dados foram preenchidos)
+                requerente_id = None 
                 cpf_requerente = formulario.get("cpf_requerente")
                 cnpj_requerente = formulario.get("cnpj_requerente")
                 cpf_cnpj_requerente = cpf_requerente or cnpj_requerente
                 nome_requerente = formulario.get("nome_requerente")
                 tipo_requerente = formulario.get("tipo_requerente")
-                
-                if cpf_cnpj_requerente and nome_requerente:
+
+                if nome_requerente:
                     with conn.cursor() as cur:
                         cur.execute("""
                             INSERT INTO requerente (cpf_cnpj_requerente, nome_requerente, tipo_requerente) 
                             VALUES (%s, %s, %s)
-                            ON CONFLICT (cpf_cnpj_requerente) 
-                            DO UPDATE SET 
-                                nome_requerente = EXCLUDED.nome_requerente,
-                                tipo_requerente = EXCLUDED.tipo_requerente
-                        """, (cpf_cnpj_requerente, nome_requerente, tipo_requerente))
+                            RETURNING id_requerente  // ✅ OBTER O ID
+                        """, (cpf_cnpj_requerente or None, nome_requerente, tipo_requerente or None))
+                        
+                        result = cur.fetchone()
+                        requerente_id = result[0] if result else None
+                        print(f"✅ Requerente atualizado. ID: {requerente_id}")
                     
-                    # Atualizar campo 'requerente' na tabela processo
+                  
                     with conn.cursor() as cur:
                         cur.execute("UPDATE processo SET requerente = %s WHERE protocolo = %s", 
-                                (cpf_cnpj_requerente, protocolo))
+                                (requerente_id, protocolo))  
+                # 🆕 7. ATUALIZAR PROPRIETÁRIO (NOVO BLOCO)
+                proprietario_id = None
+                cpf_cnpj_proprietario = formulario.get("cpf_cnpj_proprietario")
+                nome_proprietario = formulario.get("nome_proprietario")
 
-                # 7. ATUALIZAR ANALISE (apenas campos modificados)
+                if nome_proprietario:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            INSERT INTO proprietario (cpf_cnpj_proprietario, nome_proprietario)
+                            VALUES (%s, %s)
+                            RETURNING id_proprietario
+                        """, (cpf_cnpj_proprietario or None, nome_proprietario))
+                        
+                        result = cur.fetchone()
+                        proprietario_id = result[0] if result else None
+                        print(f"✅ Proprietário atualizado. ID: {proprietario_id}")
+                    
+                    # Atualizar relação proprietario_imovel (usando matricula_imovel que já existe)
+                    if proprietario_id and matricula_imovel:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO proprietario_imovel (imovel_matricula, proprietario_id)
+                                VALUES (%s, %s)
+                                ON CONFLICT (imovel_matricula, proprietario_id) DO NOTHING
+                            """, (matricula_imovel, proprietario_id))
+                            print(f"✅ Relação proprietário-imóvel atualizada para matrícula {matricula_imovel}")
+
+                # 8. ATUALIZAR ANALISE (apenas campos modificados)
                 with conn.cursor() as cur:
                     # Buscar análise atual
                     cur.execute("SELECT * FROM analise WHERE processo_protocolo = %s", (protocolo,))
@@ -509,65 +546,64 @@ def preencher_tecnico(protocolo):
             
              # GET - recuperar dados do banco para preencher formulário
             cur.execute("""
-                SELECT 
-                    p.protocolo, 
-                    p.observacoes, 
-                    p.pasta_numero, 
-                    p.solicitacao_requerente, 
-                    p.resposta_departamento,
-                    p.tramitacao, 
-                    p.tipologia, 
-                    im.municipio_nome AS municipio, 
-                    p.situacao_localizacao,
-                    p.responsavel_localizacao,
-                    a.responsavel_analise, 
-                    p.inicio_localizacao, 
-                    p.fim_localizacao,
-                    p.nome_ou_loteamento_do_condominio_a_ser_aprovado, 
-                    p.interesse_social,
-                    r.nome_requerente, 
-                    r.tipo_requerente, 
-                    r.cpf_cnpj_requerente,
-                    CASE 
+             SELECT 
+                p.protocolo, 
+                p.observacoes, 
+                p.pasta_numero, 
+                p.solicitacao_requerente, 
+                p.resposta_departamento,
+                p.tramitacao, 
+                p.tipologia, 
+                im.municipio_nome AS municipio, 
+                p.situacao_localizacao,
+                p.responsavel_localizacao,
+                a.responsavel_analise, 
+                p.inicio_localizacao, 
+                p.fim_localizacao,
+                p.nome_ou_loteamento_do_condominio_a_ser_aprovado, 
+                p.interesse_social,
+                r.nome_requerente, 
+                r.tipo_requerente, 
+                r.cpf_cnpj_requerente,
+                CASE 
                         WHEN LENGTH(REPLACE(REPLACE(r.cpf_cnpj_requerente, '.', ''), '-', '')) = 11 
                         THEN r.cpf_cnpj_requerente
                         ELSE NULL 
                     END AS cpf_requerente,
-        
                     CASE 
                         WHEN LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(r.cpf_cnpj_requerente, '.', ''), '-', ''), '/', ''), '.', '')) = 14 
                         THEN r.cpf_cnpj_requerente
                         ELSE NULL 
-                    END AS cnpj_requerente, 
-                    pr.nome_proprietario, 
-                    pr.cpf_cnpj_proprietario, 
-                    p.imovel_matricula, 
-                    a.prioridade, 
-                    a.complexidade,
-                    za.apa AS apa, 
-                    za.nome_zona_apa as zona_apa, 
-                    zu.utp AS utp, 
-                    zu.nome_zona_utp as zona_utp,
-                    i.curva_inundacao,
-                    i.faixa_servidao, 
-                    i.classificacao_viaria AS sistema_viario,
-                    a.situacao_analise,
-                    p.perimetro_urbano,
-                    zu2.sigla_zona_urbana as zona_urbana,
-                    mm.sigla_macrozona as macrozona_municipal
-                FROM processo p
-                JOIN analise a ON a.processo_protocolo = p.protocolo
-                LEFT JOIN imovel_municipio im ON p.imovel_matricula = im.imovel_matricula
-                LEFT JOIN requerente r ON p.requerente = r.cpf_cnpj_requerente
-                LEFT JOIN proprietario_imovel pi ON im.imovel_matricula = pi.imovel_matricula
-                LEFT JOIN proprietario pr ON pi.proprietario_cpf_cnpj = pr.cpf_cnpj_proprietario
-                LEFT JOIN imovel i ON p.imovel_matricula = i.matricula_imovel
-                LEFT JOIN zona_apa za ON i.zona_apa = za.id_zona_apa
-                LEFT JOIN zona_utp zu ON i.zona_utp = zu.id_zona_utp
-                LEFT JOIN imovel_zona_macrozona izm on i.matricula_imovel = izm.imovel_matricula
-                LEFT JOIN zona_urbana zu2 ON izm.zona_urbana_id = zu2.id_zona_urbana
-                LEFT JOIN macrozona_municipal mm ON izm.macrozona_id = mm.id_macrozona
-                WHERE p.protocolo = %s;
+                    END AS cnpj_requerente,       
+                pr.nome_proprietario, 
+                pr.cpf_cnpj_proprietario,     
+                p.imovel_matricula, 
+                a.prioridade, 
+                a.complexidade,
+                za.nome_zona_apa as zona_apa,
+                zu.nome_zona_utp as zona_utp,
+                za.apa as apa,                    -- Nome da APA
+                zu.utp as utp,                    -- Nome da UTP
+                i.curva_inundacao,
+                i.faixa_servidao, 
+                i.classificacao_viaria AS sistema_viario,
+                a.situacao_analise,
+                p.perimetro_urbano,
+                zu2.sigla_zona_urbana as zona_urbana,
+                mm.sigla_macrozona as macrozona_municipal
+            FROM processo p
+            JOIN analise a ON a.processo_protocolo = p.protocolo
+            LEFT JOIN imovel_municipio im ON p.imovel_matricula = im.imovel_matricula
+            LEFT JOIN requerente r ON p.requerente = r.id_requerente
+            LEFT JOIN proprietario_imovel pi ON p.imovel_matricula = pi.imovel_matricula
+            LEFT JOIN proprietario pr ON pi.proprietario_id = pr.id_proprietario
+            LEFT JOIN imovel i ON p.imovel_matricula = i.matricula_imovel
+            LEFT JOIN zona_apa za ON i.zona_apa = za.id_zona_apa
+            LEFT JOIN zona_utp zu ON i.zona_utp = zu.id_zona_utp
+            LEFT JOIN imovel_zona_macrozona izm ON i.matricula_imovel = izm.imovel_matricula
+            LEFT JOIN zona_urbana zu2 ON izm.zona_urbana_id = zu2.id_zona_urbana
+            LEFT JOIN macrozona_municipal mm ON izm.macrozona_id = mm.id_macrozona
+            WHERE p.protocolo = %s;
 
             """, (protocolo,))
 
@@ -578,7 +614,6 @@ def preencher_tecnico(protocolo):
             cols = [desc[0] for desc in cur.description]
             processo = dict(zip(cols, row))
             
-
             imovel_municipio = None
 
             # verifica se o processo tem alguma referência ao imóvel
@@ -634,7 +669,7 @@ def encaminhar_processo(protocolo, setor_destino):
                 row = cur.fetchone()
                 if not row:
                     flash("Processo não encontrado", "error")
-                    return redirect(url_for("dig.ambiente"))
+                    return redirect(url_for("dcot.ambiente"))
                 
                 setor_origem = row[0]
                 print(f"🔍 DEBUG: Processo {protocolo} saindo de {setor_origem} para {setor_destino}")
@@ -678,6 +713,7 @@ def encaminhar_processo(protocolo, setor_destino):
         print(f"❌ Erro: {str(e)}")
 
     return redirect(url_for("dcot.ambiente"))
+
 
 
 

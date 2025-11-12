@@ -323,14 +323,16 @@
         <div class="checkbox-inline">
             <label>
                 Interesse Social:
-                <input type="checkbox" id="interesse_social" name="interesse_social" {% if processo.interesse_social %}checked{% endif %} disabled />
+                <input type="checkbox" id="interesse_social" name="interesse_social" 
+                    {% if processo.interesse_social %}checked{% endif %} />
             </label>
         </div>
 
         <div class="checkbox-inline">
             <label>
                 Lei inclui perímetro urbano:
-                <input type="checkbox" id="lei_inclui_perimetro_urbano" name="lei_inclui_perimetro_urbano" {% if processo.perimetro_urbano %}checked{% endif %} disabled />
+                <input type="checkbox" id="perimetro_urbano" name="perimetro_urbano" 
+                    {% if processo.perimetro_urbano %}checked{% endif %} />
             </label>
         </div>
 
@@ -403,8 +405,9 @@
         <div>
             <label style="position: relative;">
                 Possui APA?
-                <input type="checkbox" id="possui_apa" class="trigger-condicional" data-target="apa" 
-                    {% if processo.apa %}checked{% endif %} />
+                <input type="checkbox" id="possui_apa" class="trigger-condicional" 
+                data-target="#apa-container"
+                {% if processo.apa or processo.zona_apa %}checked{% endif %} />
                 {% if processo.apa %}
                 <button type="button" class="btn-editar-congelado" id="btn-editar-possui_apa">Editar</button>
                 {% endif %}
@@ -439,8 +442,9 @@
         <div>
             <label style="position: relative;">
                 Possui UTP?
-                <input type="checkbox" id="possui_utp" class="trigger-condicional" data-target="utp" 
-                    {% if processo.utp %}checked{% endif %} />
+                <input type="checkbox" id="possui_utp" class="trigger-condicional" 
+                data-target="#utp-container"
+                {% if processo.utp or processo.zona_utp %}checked{% endif %} />
                 {% if processo.utp %}
                 <button type="button" class="btn-editar-congelado" id="btn-editar-possui_utp">Editar</button>
                 {% endif %}
@@ -526,8 +530,9 @@
         <div>
             <label style="position: relative;">
                 Possui Diretriz Viária?
-                <input type="checkbox" id="possui_diretriz" class="trigger-condicional" data-target="sistema_viario" 
-                    {% if processo.sistema_viario %}checked{% endif %} />
+                <input type="checkbox" id="possui_diretriz" class="trigger-condicional" 
+                data-target="#diretriz-viaria-container"
+                {% if processo.sistema_viario %}checked{% endif %} />
                 {% if processo.sistema_viario %}
                 <button type="button" class="btn-editar-congelado" id="btn-editar-possui_diretriz">Editar</button>
                 {% endif %}
@@ -563,6 +568,8 @@ function criarBotaoEditarUniversal(campoId, botaoId, textoBotao = 'Editar') {
     if (!campo) {
         console.log(`❌ Campo ${campoId} não encontrado`);
         return;
+
+        if (campo.type === 'checkbox') return;
     }
     
     // Remove botão existente se houver
@@ -809,7 +816,7 @@ document.querySelectorAll('.trigger-condicional').forEach(checkbox => {
             'tipologia', 'municipio', 'zona_urbana', 'macrozona_municipal',
             'situacao_localizacao', 'responsavel_localizacao', 
             'inicio_localizacao', 'fim_localizacao',
-            'nome_condominio', 'interesse_social', 'lei_inclui_perimetro_urbano',
+            'nome_condominio', //'interesse_social', 'lei_inclui_perimetro_urbano', 
             'nome_requerente', 'tipo_requerente', 'cpf_requerente', 
             'cnpj_requerente', 'nome_proprietario', 'cpf_cnpj_proprietario',
             'imovel_matricula', 'prioridade', 'complexidade',
@@ -913,6 +920,92 @@ document.addEventListener('DOMContentLoaded', function() {
         if (municipioSelect.value) {
             setTimeout(() => {
                 carregarZonasParaMunicipio(municipioSelect.value);
+            }, 500);
+        }
+    }
+});
+// 🆕 CARREGAR ZONAS DINAMICAMENTE PARA APA/UTP
+function carregarZonasAPA(apaSelecionada) {
+    if (!apaSelecionada) {
+        document.getElementById('zona_apa').innerHTML = '<option value="">--Selecione--</option>';
+        return;
+    }
+    
+    fetch(`/get_zonas_apa/${encodeURIComponent(apaSelecionada)}`)
+        .then(response => response.json())
+        .then(zonas => {
+            const zonaSelect = document.getElementById('zona_apa');
+            const zonaAtual = '{{ processo.zona_apa or "" }}';
+            
+            zonaSelect.innerHTML = '<option value="">--Selecione--</option>';
+            zonas.forEach(zona => {
+                const option = document.createElement('option');
+                option.value = zona;
+                option.textContent = zona;
+                if (zona === zonaAtual) {
+                    option.selected = true;
+                }
+                zonaSelect.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Erro ao carregar zonas APA:', error));
+}
+
+function carregarZonasUTP(utpSelecionada) {
+    if (!utpSelecionada) {
+        document.getElementById('zona_utp').innerHTML = '<option value="">--Selecione--</option>';
+        return;
+    }
+    
+    fetch(`/get_zonas_utp/${encodeURIComponent(utpSelecionada)}`)
+        .then(response => response.json())
+        .then(zonas => {
+            const zonaSelect = document.getElementById('zona_utp');
+            const zonaAtual = '{{ processo.zona_utp or "" }}';
+            
+            zonaSelect.innerHTML = '<option value="">--Selecione--</option>';
+            zonas.forEach(zona => {
+                const option = document.createElement('option');
+                option.value = zona;
+                option.textContent = zona;
+                if (zona === zonaAtual) {
+                    option.selected = true;
+                }
+                zonaSelect.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Erro ao carregar zonas UTP:', error));
+}
+
+// 🆕 EVENT LISTENERS PARA APA/UTP
+document.addEventListener('DOMContentLoaded', function() {
+    const apaSelect = document.getElementById('apa');
+    const utpSelect = document.getElementById('utp');
+    
+    // APA - carregar zonas quando mudar
+    if (apaSelect) {
+        apaSelect.addEventListener('change', function() {
+            carregarZonasAPA(this.value);
+        });
+        
+        // Carregar zonas automaticamente se já houver APA selecionada
+        if (apaSelect.value) {
+            setTimeout(() => {
+                carregarZonasAPA(apaSelect.value);
+            }, 500);
+        }
+    }
+    
+    // UTP - carregar zonas quando mudar
+    if (utpSelect) {
+        utpSelect.addEventListener('change', function() {
+            carregarZonasUTP(this.value);
+        });
+        
+        // Carregar zonas automaticamente se já houver UTP selecionada
+        if (utpSelect.value) {
+            setTimeout(() => {
+                carregarZonasUTP(utpSelect.value);
             }, 500);
         }
     }

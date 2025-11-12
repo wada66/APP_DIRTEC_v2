@@ -159,7 +159,8 @@ def inserir():
     setor_destino = formulario.get("setor_destino")
 
     interesse_social = formulario.get("interesse_social") == "on"
-    lei_inclui_perimetro_urbano = formulario.get("lei_inclui_perimetro_urbano") == "on"
+    lei_inclui_perimetro_urbano = formulario.get("perimetro_urbano") == "on"
+
 
     inicio_localizacao = formulario.get("inicio_localizacao") or None
     fim_localizacao = formulario.get("fim_localizacao") or None
@@ -176,44 +177,45 @@ def inserir():
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 
-                # Inserir requerente
                 cpf = formulario.get("cpf_requerente")
                 cnpj = formulario.get("cnpj_requerente")
-                cpf_cnpj_requerente = cpf or cnpj  # pega o que estiver preenchido
-
-                if cpf_cnpj_requerente and formulario.get("nome_requerente") and formulario.get("tipo_de_requerente"):
-                    cur.execute("""
-                        INSERT INTO requerente (cpf_cnpj_requerente, nome_requerente, tipo_requerente)
-                        VALUES (%s, %s, %s) ON CONFLICT (cpf_cnpj_requerente) DO NOTHING
-                    """, (cpf_cnpj_requerente, formulario["nome_requerente"], formulario["tipo_de_requerente"]))
-
-
-                # 🎯 🔥 POR ESTE CÓDIGO CORRIGIDO:
-                cpf = formulario.get("cpf_requerente")
-                cnpj = formulario.get("cnpj_requerente")
-                cpf_cnpj_requerente = cpf or cnpj  # pega o que estiver preenchido
+                cpf_cnpj_requerente = cpf or cnpj
                 nome_requerente = formulario.get("nome_requerente")
                 tipo_requerente = formulario.get("tipo_de_requerente")
 
-                # 🎯 SE NÃO HOUVER DADOS DO REQUERENTE, GARANTE QUE SERÁ NULL
-                if not cpf_cnpj_requerente or not nome_requerente or not tipo_requerente:
-                    cpf_cnpj_requerente = None  # 🎯 CRÍTICO: ISSO RESOLVE O ERRO
-                    print("🔧 Requerente não preenchido - campo será NULL no processo")
-                else:
-                    # Só insere na tabela requerente se tiver dados completos
+                requerente_id = None
+
+                if nome_requerente:
                     cur.execute("""
                         INSERT INTO requerente (cpf_cnpj_requerente, nome_requerente, tipo_requerente)
-                        VALUES (%s, %s, %s) ON CONFLICT (cpf_cnpj_requerente) DO NOTHING
-                    """, (cpf_cnpj_requerente, nome_requerente, tipo_requerente))
-                    print(f"✅ Requerente inserido: {nome_requerente}")
+                        VALUES (%s, %s, %s) 
+                        RETURNING id_requerente
+                    """, (cpf_cnpj_requerente or None, nome_requerente, tipo_requerente or None))
+                    
+                    result = cur.fetchone()
+                    requerente_id = result[0] if result else None
+                    print(f"✅ Requerente inserido. ID: {requerente_id}")
 
-                # Inserir proprietário
-                if formulario.get("cpf_cnpj_proprietario") and formulario.get("nome_proprietario"):
+                # 🎯 CRÍTICO: MANTER ESTA PARTE DA ROBUSTA (tratamento de NULL)
+                if not cpf_cnpj_requerente or not nome_requerente or not tipo_requerente:
+                    cpf_cnpj_requerente = None
+                    print("🔧 Requerente não preenchido - campo será NULL no processo")
+
+                proprietario_id = None
+                cpf_cnpj_proprietario = formulario.get("cpf_cnpj_proprietario")
+                nome_proprietario = formulario.get("nome_proprietario")
+
+                if nome_proprietario:
                     cur.execute("""
                         INSERT INTO proprietario (cpf_cnpj_proprietario, nome_proprietario)
-                        VALUES (%s, %s) ON CONFLICT (cpf_cnpj_proprietario) DO NOTHING
-                    """, (formulario["cpf_cnpj_proprietario"], formulario["nome_proprietario"]))
+                        VALUES (%s, %s) 
+                        RETURNING id_proprietario
+                    """, (cpf_cnpj_proprietario or None, nome_proprietario))
                     
+                    result = cur.fetchone()
+                    proprietario_id = result[0] if result else None
+                    print(f"✅ Proprietário inserido. ID: {proprietario_id}")
+              
                 # Inserir imóvel
                 zona_apa_nome = formulario.get("zona_apa")
                 zona_utp_nome = formulario.get("zona_utp")
@@ -256,16 +258,13 @@ def inserir():
                         ON CONFLICT DO NOTHING
                     """, (formulario["matricula_imovel"], formulario["municipio"]))
 
-                # INSERIR NA TABELA PROPRIETARIO_IMOVEL
                 imovel_matricula = formulario.get("matricula_imovel")
-                proprietario_cpf_cnpj = formulario.get("cpf_cnpj_proprietario")
 
-                if imovel_matricula and proprietario_cpf_cnpj:
+                if imovel_matricula and proprietario_id:
                     cur.execute("""
-                        INSERT INTO proprietario_imovel (imovel_matricula, proprietario_cpf_cnpj)
+                        INSERT INTO proprietario_imovel (imovel_matricula, proprietario_id)
                         VALUES (%s, %s)
-                        ON CONFLICT (imovel_matricula, proprietario_cpf_cnpj) DO NOTHING
-                    """, (imovel_matricula, proprietario_cpf_cnpj))
+                    """, (imovel_matricula, proprietario_id))
                     
                 sigla_zona_urbana = formulario.get("zona_urbana")
                 sigla_macrozona = formulario.get("macrozona_municipal")
@@ -330,7 +329,7 @@ def inserir():
                     inicio_localizacao,
                     fim_localizacao,
                     dias_uteis_localizacao,
-                    cpf_cnpj_requerente,
+                    requerente_id,
                     formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
                     interesse_social,
                     data_entrada,
@@ -360,6 +359,30 @@ def inserir():
                 existe_processo = cur.fetchone()
     
                 if existe_processo:
+                    print("🎯 === EXECUTANDO UPDATE ===")
+                    
+                    try:
+                        cur.execute(
+                            """
+                            UPDATE processo SET
+                                interesse_social = %s,
+                                perimetro_urbano = %s
+                            WHERE protocolo = %s
+                            """,
+                            (
+                                interesse_social,
+                                lei_inclui_perimetro_urbano,
+                                formulario.get("protocolo")
+                            )
+                        )
+                        print("✅ UPDATE EXECUTADO - fazendo commit...")
+                        conn.commit()  # 👈 COMMIT EXPLÍCITO
+                        print("✅ COMMIT REALIZADO")
+                        
+                    except Exception as e:
+                        print(f"❌ ERRO NO UPDATE: {e}")
+                        conn.rollback()
+
                     # Atualizar processo e analise
                     cur.execute(
                         """
@@ -380,6 +403,7 @@ def inserir():
                             requerente = %s,
                             nome_ou_loteamento_do_condominio_a_ser_aprovado = %s,
                             interesse_social = %s,
+                            perimetro_urbano = %s,
                             data_entrada = %s
                         WHERE protocolo = %s
                         """,
@@ -397,9 +421,10 @@ def inserir():
                             inicio_localizacao,
                             fim_localizacao,
                             dias_uteis_localizacao,
-                            cpf_cnpj_requerente,
+                            requerente_id,
                             formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
                             interesse_social,
+                            lei_inclui_perimetro_urbano,
                             data_entrada,
                             formulario.get("protocolo"),
                         ),
@@ -477,7 +502,7 @@ def inserir():
                             inicio_localizacao,
                             fim_localizacao,
                             dias_uteis_localizacao,
-                            formulario.get("cpf_cnpj_requerente"),
+                            requerente_id,
                             formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
                             interesse_social,
                             data_entrada,
