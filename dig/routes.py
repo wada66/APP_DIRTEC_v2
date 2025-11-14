@@ -196,7 +196,7 @@ def preencher_tecnico(protocolo):
             return val == 'on' or val == 'true' or val == '1' or val == 'True'
 
         # Normaliza checkbox para booleano real - VERSÃO CORRIGIDA
-        checkbox_fields = ["interesse_social", "lei_inclui_perimetro_urbano",
+        checkbox_fields = ["interesse_social", "perimetro_urbano",
                         "possui_apa", "possui_utp", "possui_manancial",
                         "possui_curva", "possui_faixa", "possui_diretriz"]
 
@@ -352,105 +352,162 @@ def preencher_tecnico(protocolo):
                 else:
                     print("⏭️  Condição NÃO atendida - pulando")
                     
-                # 5. ATUALIZAR ZONAS URBANAS/MACROZONAS (sempre que houver matrícula)
-                zona_urbana = formulario.get("zona_urbana")
-                macrozona_municipal = formulario.get("macrozona_municipal")
+            # 5. ATUALIZAR ZONAS URBANAS/MACROZONAS (VERSÃO INTELIGENTE)
+            zona_urbana = formulario.get("zona_urbana")
+            macrozona_municipal = formulario.get("macrozona_municipal")
 
-                # 🚨 CONVERTER VAZIOS PARA None (CRÍTICO!)
-                if zona_urbana == '': 
-                    zona_urbana = None
-                    print("🔧 Zona urbana convertida de vazio para NULL")
-                if macrozona_municipal == '': 
-                    macrozona_municipal = None  
-                    print("🔧 Macrozona municipal convertida de vazio para NULL")
+            print(f"🔍 DEBUG ZONAS INICIAL - Zona: '{zona_urbana}', Macrozona: '{macrozona_municipal}'")
 
-                print(f"🔍 DEBUG ZONAS - Zona: '{zona_urbana}', Macrozona: '{macrozona_municipal}', Matrícula: '{matricula_imovel}'")
+            # 🎯 BUSCAR VALORES ATUAIS NO BANCO
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT zu.sigla_zona_urbana, mm.sigla_macrozona 
+                    FROM imovel_zona_macrozona izm
+                    LEFT JOIN zona_urbana zu ON izm.zona_urbana_id = zu.id_zona_urbana
+                    LEFT JOIN macrozona_municipal mm ON izm.macrozona_id = mm.id_macrozona
+                    WHERE izm.imovel_matricula = %s
+                """, (matricula_imovel,))
+                resultado = cur.fetchone()
+                
+                zona_urbana_atual = resultado[0] if resultado else None
+                macrozona_municipal_atual = resultado[1] if resultado else None
 
-                # 🎯 SEMPRE tenta atualizar se tem matrícula
-                if matricula_imovel:
-                    print("🔄 Atualizando zonas/macrozonas...")
-                    
-                    # Buscar IDs das zonas (mesmo que sejam None)
-                    id_zona_urbana = None
-                    id_macrozona = None
-                    
-                    with conn.cursor() as cur:
-                        if zona_urbana:  # Só busca ID se não for None
-                            cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (zona_urbana,))
-                            result = cur.fetchone()
-                            id_zona_urbana = result[0] if result else None
-                        
-                        if macrozona_municipal:  # Só busca ID se não for None
-                            cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (macrozona_municipal,))
-                            result = cur.fetchone()
-                            id_macrozona = result[0] if result else None
-                    
-                    # Atualizar tabela de relacionamento
-                    with conn.cursor() as cur:
-                        cur.execute("""
-                            INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id) 
-                            VALUES (%s, %s, %s)
-                            ON CONFLICT (imovel_matricula) 
-                            DO UPDATE SET 
-                                zona_urbana_id = EXCLUDED.zona_urbana_id, 
-                                macrozona_id = EXCLUDED.macrozona_id
-                        """, (matricula_imovel, id_zona_urbana, id_macrozona))
-                    
-                    print("✅ Zonas/Macrozonas atualizadas!")
+            print(f"🔍 VALORES ATUAIS NO BANCO - Zona: '{zona_urbana_atual}', Macrozona: '{macrozona_municipal_atual}'")
+
+            # 🎯 DETERMINAR VALORES FINAIS (PRESERVAR O QUE NÃO FOI MODIFICADO)
+            zona_final = zona_urbana_atual  # Começa com o valor atual
+            macrozona_final = macrozona_municipal_atual  # Começa com o valor atual
+
+            # Só atualiza se o usuário enviou algo EXPLICITAMENTE
+            if zona_urbana is not None:
+                if zona_urbana == '':
+                    zona_final = None  # Usuário quer remover
                 else:
-                    print("⏭️ Zonas/macrozonas não atualizadas - matrícula faltando")
-                    
-                # 6. ATUALIZAR REQUERENTE (apenas se dados foram preenchidos)
-                requerente_id = None 
-                cpf_requerente = formulario.get("cpf_requerente")
-                cnpj_requerente = formulario.get("cnpj_requerente")
-                cpf_cnpj_requerente = cpf_requerente or cnpj_requerente
-                nome_requerente = formulario.get("nome_requerente")
-                tipo_requerente = formulario.get("tipo_requerente")
+                    zona_final = zona_urbana  # Usuário quer mudar
 
-                if nome_requerente:
-                    with conn.cursor() as cur:
-                        cur.execute("""
-                            INSERT INTO requerente (cpf_cnpj_requerente, nome_requerente, tipo_requerente) 
-                            VALUES (%s, %s, %s)
-                            RETURNING id_requerente  // ✅ OBTER O ID
-                        """, (cpf_cnpj_requerente or None, nome_requerente, tipo_requerente or None))
-                        
-                        result = cur.fetchone()
-                        requerente_id = result[0] if result else None
-                        print(f"✅ Requerente atualizado. ID: {requerente_id}")
-                    
-                  
-                    with conn.cursor() as cur:
-                        cur.execute("UPDATE processo SET requerente = %s WHERE protocolo = %s", 
-                                (requerente_id, protocolo))  
-                # 🆕 7. ATUALIZAR PROPRIETÁRIO (NOVO BLOCO)
-                proprietario_id = None
-                cpf_cnpj_proprietario = formulario.get("cpf_cnpj_proprietario")
-                nome_proprietario = formulario.get("nome_proprietario")
+            if macrozona_municipal is not None:
+                if macrozona_municipal == '':
+                    macrozona_final = None  # Usuário quer remover
+                else:
+                    macrozona_final = macrozona_municipal  # Usuário quer mudar
 
-                if nome_proprietario:
-                    with conn.cursor() as cur:
-                        cur.execute("""
-                            INSERT INTO proprietario (cpf_cnpj_proprietario, nome_proprietario)
-                            VALUES (%s, %s)
-                            RETURNING id_proprietario
-                        """, (cpf_cnpj_proprietario or None, nome_proprietario))
-                        
+            print(f"🔍 VALORES FINAIS - Zona: '{zona_final}', Macrozona: '{macrozona_final}'")
+
+            # 🎯 Só atualizar se pelo menos um campo foi modificado
+            houve_modificacao = (
+                zona_final != zona_urbana_atual or 
+                macrozona_final != macrozona_municipal_atual
+            )
+
+            if matricula_imovel and houve_modificacao:
+                print("🔄 Atualizando zonas/macrozonas (houve modificação)...")
+                
+                # Buscar IDs
+                id_zona_urbana = None
+                id_macrozona = None
+                
+                with conn.cursor() as cur:
+                    if zona_final:  # Só busca se não for None
+                        cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (zona_final,))
                         result = cur.fetchone()
-                        proprietario_id = result[0] if result else None
-                        print(f"✅ Proprietário atualizado. ID: {proprietario_id}")
+                        id_zona_urbana = result[0] if result else None
                     
-                    # Atualizar relação proprietario_imovel (usando matricula_imovel que já existe)
-                    if proprietario_id and matricula_imovel:
-                        with conn.cursor() as cur:
+                    if macrozona_final:  # Só busca se não for None
+                        cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (macrozona_final,))
+                        result = cur.fetchone()
+                        id_macrozona = result[0] if result else None
+                
+                # Atualizar banco
+                with conn.cursor() as cur:
+                    print(f"🎯 EXECUTANDO UPDATE: matricula={matricula_imovel}, zona_id={id_zona_urbana}, macro_id={id_macrozona}")
+                    
+                    cur.execute("""
+                        INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id) 
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (imovel_matricula) 
+                        DO UPDATE SET 
+                            zona_urbana_id = EXCLUDED.zona_urbana_id, 
+                            macrozona_id = EXCLUDED.macrozona_id
+                    """, (matricula_imovel, id_zona_urbana, id_macrozona))
+                
+                print("✅ Zonas/Macrozonas atualizadas!")
+            else:
+                print("⏭️ Zonas/macrozonas NÃO atualizadas - sem modificações")
+                    
+            # 6. ATUALIZAR REQUERENTE (VERSÃO CORRIGIDA)
+            requerente_id = None 
+            cpf_requerente = formulario.get("cpf_requerente")
+            cnpj_requerente = formulario.get("cnpj_requerente")
+            cpf_cnpj_requerente = cpf_requerente or cnpj_requerente
+            nome_requerente = formulario.get("nome_requerente")
+            tipo_requerente = formulario.get("tipo_requerente")
+
+            # 🎯 ATUALIZAR SE: tem nome OU tem CPF/CNPJ (não precisa dos dois)
+            if nome_requerente or cpf_cnpj_requerente:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO requerente (cpf_cnpj_requerente, nome_requerente, tipo_requerente) 
+                        VALUES (%s, %s, %s)
+                        RETURNING id_requerente
+                    """, (cpf_cnpj_requerente or None, nome_requerente or None, tipo_requerente or None))
+                    
+                    result = cur.fetchone()
+                    requerente_id = result[0] if result else None
+                    print(f"✅ Requerente atualizado. ID: {requerente_id}")
+                
+                # Atualizar processo com o ID do requerente
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE processo SET requerente = %s WHERE protocolo = %s", 
+                    (requerente_id, protocolo))
+        
+           # 🆕 7. ATUALIZAR PROPRIETÁRIO (VERSÃO CORRIGIDA - ESTRUTURA CORRETA)
+            proprietario_id = None
+            cpf_cnpj_proprietario = formulario.get("cpf_cnpj_proprietario")
+            nome_proprietario = formulario.get("nome_proprietario")
+
+            print(f"🔍 DEBUG PROPRIETÁRIO - Nome: '{nome_proprietario}', CPF/CNPJ: '{cpf_cnpj_proprietario}'")
+
+            # 🎯 ATUALIZAR SE: tem nome OU tem CPF/CNPJ (não precisa dos dois)
+            if nome_proprietario or cpf_cnpj_proprietario:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO proprietario (cpf_cnpj_proprietario, nome_proprietario)
+                        VALUES (%s, %s)
+                        RETURNING id_proprietario
+                    """, (cpf_cnpj_proprietario or None, nome_proprietario or None))
+                    
+                    result = cur.fetchone()
+                    proprietario_id = result[0] if result else None
+                    print(f"✅ Proprietário inserido/atualizado. ID: {proprietario_id}")
+                
+                # 🎯 ATUALIZAR RELAÇÃO PROPRIETARIO_IMOVEL (DENTRO DO MESMO BLOCO!)
+                if proprietario_id and matricula_imovel:
+                    with conn.cursor() as cur:
+                        # Estratégia para tabela associativa
+                        cur.execute("""
+                            SELECT proprietario_id FROM proprietario_imovel 
+                            WHERE imovel_matricula = %s
+                        """, (matricula_imovel,))
+                        relacao_existente = cur.fetchone()
+                        
+                        if relacao_existente:
+                            # UPDATE da relação existente
+                            cur.execute("""
+                                UPDATE proprietario_imovel 
+                                SET proprietario_id = %s 
+                                WHERE imovel_matricula = %s
+                            """, (proprietario_id, matricula_imovel))
+                            print(f"✅ Relação proprietário-imóvel ATUALIZADA (matrícula: {matricula_imovel})")
+                        else:
+                            # INSERT da nova relação
                             cur.execute("""
                                 INSERT INTO proprietario_imovel (imovel_matricula, proprietario_id)
                                 VALUES (%s, %s)
-                                ON CONFLICT (imovel_matricula, proprietario_id) DO NOTHING
                             """, (matricula_imovel, proprietario_id))
-                            print(f"✅ Relação proprietário-imóvel atualizada para matrícula {matricula_imovel}")
-
+                            print(f"✅ Nova relação proprietário-imóvel CRIADA (matrícula: {matricula_imovel})")
+            else:
+                print("⏭️ Proprietário não atualizado - nenhum dado fornecido")
+    
                 # 8. ATUALIZAR ANALISE (apenas campos modificados)
                 with conn.cursor() as cur:
                     # Buscar análise atual
@@ -488,8 +545,8 @@ def preencher_tecnico(protocolo):
                         cur.execute(f"UPDATE analise SET {campos_sql_analise} WHERE processo_protocolo = %s", 
                                 valores_analise_para_atualizar)
 
-                conn.commit()
-                print("✅ Atualização concluída com sucesso!")
+            conn.commit()
+            print("✅ Atualização concluída com sucesso!")
 
             return redirect(url_for("dig.ambiente"))
 

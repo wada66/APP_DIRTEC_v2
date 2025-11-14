@@ -352,53 +352,87 @@ def preencher_tecnico(protocolo):
                 else:
                     print("⏭️  Condição NÃO atendida - pulando")
                     
-                # 5. ATUALIZAR ZONAS URBANAS/MACROZONAS (sempre que houver matrícula)
-                zona_urbana = formulario.get("zona_urbana")
-                macrozona_municipal = formulario.get("macrozona_municipal")
+            # 5. ATUALIZAR ZONAS URBANAS/MACROZONAS (VERSÃO INTELIGENTE)
+            zona_urbana = formulario.get("zona_urbana")
+            macrozona_municipal = formulario.get("macrozona_municipal")
 
-                # 🚨 CONVERTER VAZIOS PARA None (CRÍTICO!)
-                if zona_urbana == '': 
-                    zona_urbana = None
-                    print("🔧 Zona urbana convertida de vazio para NULL")
-                if macrozona_municipal == '': 
-                    macrozona_municipal = None  
-                    print("🔧 Macrozona municipal convertida de vazio para NULL")
+            print(f"🔍 DEBUG ZONAS INICIAL - Zona: '{zona_urbana}', Macrozona: '{macrozona_municipal}'")
 
-                print(f"🔍 DEBUG ZONAS - Zona: '{zona_urbana}', Macrozona: '{macrozona_municipal}', Matrícula: '{matricula_imovel}'")
+            # 🎯 BUSCAR VALORES ATUAIS NO BANCO
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT zu.sigla_zona_urbana, mm.sigla_macrozona 
+                    FROM imovel_zona_macrozona izm
+                    LEFT JOIN zona_urbana zu ON izm.zona_urbana_id = zu.id_zona_urbana
+                    LEFT JOIN macrozona_municipal mm ON izm.macrozona_id = mm.id_macrozona
+                    WHERE izm.imovel_matricula = %s
+                """, (matricula_imovel,))
+                resultado = cur.fetchone()
+                
+                zona_urbana_atual = resultado[0] if resultado else None
+                macrozona_municipal_atual = resultado[1] if resultado else None
 
-                # 🎯 SEMPRE tenta atualizar se tem matrícula
-                if matricula_imovel:
-                    print("🔄 Atualizando zonas/macrozonas...")
-                    
-                    # Buscar IDs das zonas (mesmo que sejam None)
-                    id_zona_urbana = None
-                    id_macrozona = None
-                    
-                    with conn.cursor() as cur:
-                        if zona_urbana:  # Só busca ID se não for None
-                            cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (zona_urbana,))
-                            result = cur.fetchone()
-                            id_zona_urbana = result[0] if result else None
-                        
-                        if macrozona_municipal:  # Só busca ID se não for None
-                            cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (macrozona_municipal,))
-                            result = cur.fetchone()
-                            id_macrozona = result[0] if result else None
-                    
-                    # Atualizar tabela de relacionamento
-                    with conn.cursor() as cur:
-                        cur.execute("""
-                            INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id) 
-                            VALUES (%s, %s, %s)
-                            ON CONFLICT (imovel_matricula) 
-                            DO UPDATE SET 
-                                zona_urbana_id = EXCLUDED.zona_urbana_id, 
-                                macrozona_id = EXCLUDED.macrozona_id
-                        """, (matricula_imovel, id_zona_urbana, id_macrozona))
-                    
-                    print("✅ Zonas/Macrozonas atualizadas!")
+            print(f"🔍 VALORES ATUAIS NO BANCO - Zona: '{zona_urbana_atual}', Macrozona: '{macrozona_municipal_atual}'")
+
+            # 🎯 DETERMINAR VALORES FINAIS (PRESERVAR O QUE NÃO FOI MODIFICADO)
+            zona_final = zona_urbana_atual  # Começa com o valor atual
+            macrozona_final = macrozona_municipal_atual  # Começa com o valor atual
+
+            # Só atualiza se o usuário enviou algo EXPLICITAMENTE
+            if zona_urbana is not None:
+                if zona_urbana == '':
+                    zona_final = None  # Usuário quer remover
                 else:
-                    print("⏭️ Zonas/macrozonas não atualizadas - matrícula faltando")
+                    zona_final = zona_urbana  # Usuário quer mudar
+
+            if macrozona_municipal is not None:
+                if macrozona_municipal == '':
+                    macrozona_final = None  # Usuário quer remover
+                else:
+                    macrozona_final = macrozona_municipal  # Usuário quer mudar
+
+            print(f"🔍 VALORES FINAIS - Zona: '{zona_final}', Macrozona: '{macrozona_final}'")
+
+            # 🎯 Só atualizar se pelo menos um campo foi modificado
+            houve_modificacao = (
+                zona_final != zona_urbana_atual or 
+                macrozona_final != macrozona_municipal_atual
+            )
+
+            if matricula_imovel and houve_modificacao:
+                print("🔄 Atualizando zonas/macrozonas (houve modificação)...")
+                
+                # Buscar IDs
+                id_zona_urbana = None
+                id_macrozona = None
+                
+                with conn.cursor() as cur:
+                    if zona_final:  # Só busca se não for None
+                        cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (zona_final,))
+                        result = cur.fetchone()
+                        id_zona_urbana = result[0] if result else None
+                    
+                    if macrozona_final:  # Só busca se não for None
+                        cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (macrozona_final,))
+                        result = cur.fetchone()
+                        id_macrozona = result[0] if result else None
+                
+                # Atualizar banco
+                with conn.cursor() as cur:
+                    print(f"🎯 EXECUTANDO UPDATE: matricula={matricula_imovel}, zona_id={id_zona_urbana}, macro_id={id_macrozona}")
+                    
+                    cur.execute("""
+                        INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id) 
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (imovel_matricula) 
+                        DO UPDATE SET 
+                            zona_urbana_id = EXCLUDED.zona_urbana_id, 
+                            macrozona_id = EXCLUDED.macrozona_id
+                    """, (matricula_imovel, id_zona_urbana, id_macrozona))
+                
+                print("✅ Zonas/Macrozonas atualizadas!")
+            else:
+                print("⏭️ Zonas/macrozonas NÃO atualizadas - sem modificações")
                     
                 # 6. ATUALIZAR REQUERENTE (apenas se dados foram preenchidos)
                 requerente_id = None 
@@ -488,8 +522,8 @@ def preencher_tecnico(protocolo):
                         cur.execute(f"UPDATE analise SET {campos_sql_analise} WHERE processo_protocolo = %s", 
                                 valores_analise_para_atualizar)
 
-                conn.commit()
-                print("✅ Atualização concluída com sucesso!")
+            conn.commit()
+            print("✅ Atualização concluída com sucesso!")
 
             return redirect(url_for("dplam.ambiente"))
 
@@ -606,7 +640,7 @@ def preencher_tecnico(protocolo):
             WHERE p.protocolo = %s;
 
             """, (protocolo,))
-
+            
             row = cur.fetchone()
             if not row:
                 return "Processo não encontrado", 404
