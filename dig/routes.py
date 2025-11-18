@@ -288,6 +288,7 @@ def preencher_tecnico(protocolo):
                     # 3. ATUALIZAR TABELA IMOVEL (apenas campos preenchidos)
                     with conn.cursor() as cur:
                         # Buscar dados atuais do imóvel
+                        
                         cur.execute("SELECT * FROM imovel WHERE matricula_imovel = %s", (matricula_imovel,))
                         imovel_atual = cur.fetchone()
                         imovel_dict = dict(zip([desc[0] for desc in cur.description], imovel_atual)) if imovel_atual else {}
@@ -295,30 +296,68 @@ def preencher_tecnico(protocolo):
                         campos_imovel_para_atualizar = []
                         valores_imovel_para_atualizar = []
                         
-                        # Campos da tabela imovel
+                       # 🎯 CAMPOS DA TABELA IMOVEL - VERSÃO CORRIGIDA
+                        possui_apa = formulario.get("possui_apa")
+                        possui_utp = formulario.get("possui_utp")
+
+                        print(f"🔍 DEBUG INICIAL - possui_apa: {possui_apa}, possui_utp: {possui_utp}")
+
+                        # Converter texto para IDs (quando necessário)
+                        zona_apa_id = None
+                        zona_utp_id = None
+
+                        # 🎯 LÓGICA APA
+                        if possui_apa:
+                            zona_apa_texto = formulario.get("zona_apa")
+                            if zona_apa_texto and zona_apa_texto != '':
+                                cur.execute("SELECT id_zona_apa FROM zona_apa WHERE nome_zona_apa = %s", (zona_apa_texto,))
+                                result = cur.fetchone()
+                                zona_apa_id = result[0] if result else None
+                                print(f"🎯 APA - Texto: '{zona_apa_texto}' → ID: {zona_apa_id}")
+                        else:
+                            print("🔧 APA desmarcada - zona_apa será NULL")
+                            zona_apa_id = None  # ✅ GARANTIR NULL SE NÃO POSSUI
+
+                        # 🎯 LÓGICA UTP  
+                        if possui_utp:
+                            zona_utp_texto = formulario.get("zona_utp")  
+                            if zona_utp_texto and zona_utp_texto != '':
+                                cur.execute("SELECT id_zona_utp FROM zona_utp WHERE nome_zona_utp = %s", (zona_utp_texto,))
+                                result = cur.fetchone()
+                                zona_utp_id = result[0] if result else None
+                                print(f"🎯 UTP - Texto: '{zona_utp_texto}' → ID: {zona_utp_id}")
+                        else:
+                            print("🔧 UTP desmarcada - zona_utp será NULL")
+                            zona_utp_id = None  # ✅ GARANTIR NULL SE NÃO POSSUI
+
+                        # 🎯 DICIONÁRIO FINAL (FORA DOS IFS!)
                         campos_imovel = {
                             "classificacao_viaria": formulario.get("sistema_viario"),
                             "curva_inundacao": formulario.get("curva_inundacao"),
-                            "faixa_servidao": formulario.get("faixa_servidao")
+                            "faixa_servidao": formulario.get("faixa_servidao"),
+                            "zona_apa": zona_apa_id,  # ✅ PODE SER ID OU NULL
+                            "zona_utp": zona_utp_id   # ✅ PODE SER ID OU NULL
                         }
-                        
-                        for campo_imovel, valor_formulario in campos_imovel.items():
-                            # 🚨 CONVERTE STRING VAZIA PARA None (DEVE VIR ANTES!)
-                            if valor_formulario == '':
-                                valor_formulario = None
-                                print(f"🔧 Campo {campo_imovel} convertido de vazio para NULL")
+
+                        print(f"🔍 CAMPOS IMOVEL FINAIS: {campos_imovel}")
                             
-                            # DEPOIS faz a verificação normal
-                            valor_atual = imovel_dict.get(campo_imovel)
-                            if valor_formulario is not None and valor_formulario != valor_atual:
-                                campos_imovel_para_atualizar.append(f"{campo_imovel} = %s")
-                                valores_imovel_para_atualizar.append(valor_formulario)
-                        
-                        # Executar UPDATE do imóvel se houver campos para atualizar
+                        for campo_imovel, valor_formulario in campos_imovel.items():
+                                # 🚨 CONVERTE STRING VAZIA PARA None (DEVE VIR ANTES!)
+                                if valor_formulario == '':
+                                    valor_formulario = None
+                                    print(f"🔧 Campo {campo_imovel} convertido de vazio para NULL")
+                                
+                                # DEPOIS faz a verificação normal
+                                valor_atual = imovel_dict.get(campo_imovel)
+                                if valor_formulario is not None and valor_formulario != valor_atual:
+                                    campos_imovel_para_atualizar.append(f"{campo_imovel} = %s")
+                                    valores_imovel_para_atualizar.append(valor_formulario)
+                            
+                            # Executar UPDATE do imóvel se houver campos para atualizar
                         if campos_imovel_para_atualizar:
-                            campos_sql_imovel = ", ".join(campos_imovel_para_atualizar)
-                            valores_imovel_para_atualizar.append(matricula_imovel)
-                            cur.execute(f"UPDATE imovel SET {campos_sql_imovel} WHERE matricula_imovel = %s", valores_imovel_para_atualizar)
+                                campos_sql_imovel = ", ".join(campos_imovel_para_atualizar)
+                                valores_imovel_para_atualizar.append(matricula_imovel)
+                                cur.execute(f"UPDATE imovel SET {campos_sql_imovel} WHERE matricula_imovel = %s", valores_imovel_para_atualizar)
                     
                 # 4. ATUALIZAR IMOVEL_MUNICIPIO 
                 if municipio_formulario and matricula_imovel:
@@ -509,7 +548,7 @@ def preencher_tecnico(protocolo):
                 print("⏭️ Proprietário não atualizado - nenhum dado fornecido")
     
                 # 8. ATUALIZAR ANALISE (apenas campos modificados)
-                with conn.cursor() as cur:
+            with conn.cursor() as cur:
                     # Buscar análise atual
                     cur.execute("SELECT * FROM analise WHERE processo_protocolo = %s", (protocolo,))
                     analise_atual = cur.fetchone()
