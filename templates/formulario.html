@@ -321,6 +321,34 @@
         <label>CPF/CNPJ do Proprietário: <input type="text" name="cpf_cnpj_proprietario" maxlength="14"></label>
         <label>Matrícula do Imóvel: <input type="text" name="matricula_imovel" required></label>
 
+        <label>Área (m²): 
+            <input type="text" name="area" 
+                placeholder="Ex: 150,75"
+                class="decimal-input"
+                title="Digite a área usando vírgula como separador decimal">
+        </label>
+
+        <label>Localidade do Imóvel: 
+            <textarea name="localidade_imovel" rows="3" 
+                    placeholder="Descreva a localização do imóvel"
+                    maxlength="500"
+                    style="width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ced4da; border-radius: 8px; font-family: 'Poppins', sans-serif; resize: vertical;"></textarea>
+        </label>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <label>Latitude:
+                <input type="text" name="latitude" 
+                    placeholder="Ex: -23,550520"
+                    class="coordenada-input">
+            </label>
+            
+            <label>Longitude:
+                <input type="text" name="longitude" 
+                    placeholder="Ex: -46,633308" 
+                    class="coordenada-input">
+            </label>
+        </div>
+
         <label>Prioridade:
             <select name="prioridade" id="prioridade">
                 <option value="">--Selecione--</option>

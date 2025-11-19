@@ -330,13 +330,28 @@ def preencher_tecnico(protocolo):
                             print("🔧 UTP desmarcada - zona_utp será NULL")
                             zona_utp_id = None  # ✅ GARANTIR NULL SE NÃO POSSUI
 
+                        latitude = formulario.get("latitude")
+                        longitude = formulario.get("longitude")
+                        area = formulario.get("area")
+
+                        if latitude:
+                            latitude = latitude.replace(',', '.')  # Converte vírgula para ponto
+                        if longitude:
+                            longitude = longitude.replace(',', '.')  # Converte vírgula para ponto
+                        if area:
+                            area = area.replace(',', '.')  # Converte área também!
+
                         # 🎯 DICIONÁRIO FINAL (FORA DOS IFS!)
                         campos_imovel = {
                             "classificacao_viaria": formulario.get("sistema_viario"),
                             "curva_inundacao": formulario.get("curva_inundacao"),
                             "faixa_servidao": formulario.get("faixa_servidao"),
                             "zona_apa": zona_apa_id,  # ✅ PODE SER ID OU NULL
-                            "zona_utp": zona_utp_id   # ✅ PODE SER ID OU NULL
+                            "zona_utp": zona_utp_id,   # ✅ PODE SER ID OU NULL
+                            "area": area or None,
+                            "localidade_imovel": formulario.get("localidade_imovel"), 
+                            "latitude": latitude or None,
+                            "longitude": longitude or None
                         }
 
                         print(f"🔍 CAMPOS IMOVEL FINAIS: {campos_imovel}")
@@ -673,7 +688,11 @@ def preencher_tecnico(protocolo):
                     END AS cnpj_requerente,       
                 pr.nome_proprietario, 
                 pr.cpf_cnpj_proprietario,     
-                p.imovel_matricula, 
+                p.imovel_matricula,
+                i.area,                  
+                i.localidade_imovel,        
+                i.latitude,              
+                i.longitude,                
                 a.prioridade, 
                 a.complexidade,
                 za.nome_zona_apa as zona_apa,

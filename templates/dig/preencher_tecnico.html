@@ -380,6 +380,57 @@
         </label>
 
         <label>
+            Área (m²):
+            <input type="text" id="area" name="area" 
+                value="{{ processo.area or '' }}"
+                placeholder="Ex: 150,75"
+                class="decimal-input"
+                {% if processo.area %}readonly{% endif %}
+                title="Digite a área usando vírgula como separador decimal">
+            {% if processo.area %}
+            <button type="button" class="btn-editar-congelado" id="btn-editar-area">Editar</button>
+            {% endif %}
+        </label>
+
+        <label>
+            Localidade do Imóvel:
+            <textarea id="localidade_imovel" name="localidade_imovel" 
+                    placeholder="Descreva a localização do imóvel"
+                    maxlength="500"
+                    {% if processo.localidade_imovel %}readonly{% endif %}
+                    style="width: 100%; padding: 12px; margin-top: 8px; border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Poppins', sans-serif; resize: vertical;">{{ processo.localidade_imovel or '' }}</textarea>
+            {% if processo.localidade_imovel %}
+            <button type="button" class="btn-editar-congelado" id="btn-editar-localidade_imovel">Editar</button>
+            {% endif %}
+        </label>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <label>
+                Latitude:
+                <input type="text" id="latitude" name="latitude" 
+                    value="{{ processo.latitude or '' }}"
+                    placeholder="Ex: -23,550520"
+                    class="coordenada-input"
+                    {% if processo.latitude %}readonly{% endif %}>
+                {% if processo.latitude %}
+                <button type="button" class="btn-editar-congelado" id="btn-editar-latitude">Editar</button>
+                {% endif %}
+            </label>
+            
+            <label>
+                Longitude:
+                <input type="text" id="longitude" name="longitude" 
+                    value="{{ processo.longitude or '' }}"
+                    placeholder="Ex: -46,633308" 
+                    class="coordenada-input"
+                    {% if processo.longitude %}readonly{% endif %}>
+                {% if processo.longitude %}
+                <button type="button" class="btn-editar-congelado" id="btn-editar-longitude">Editar</button>
+                {% endif %}
+            </label>
+        </div>
+
+        <label>
             Prioridade:
             <select id="prioridade" name="prioridade" {% if processo.prioridade %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
@@ -809,6 +860,8 @@ document.querySelectorAll('.trigger-condicional').forEach(checkbox => {
             // CHECKBOXES "POSSUI"
             //'possui_apa', 'possui_utp', 'possui_curva', 'possui_faixa', 'possui_diretriz',
             // CAMPOS CONDICIONAIS
+            'area', 'localidade_imovel', 'latitude', 'longitude',
+            'prioridade', 'complexidade',
             'apa', 'zona_apa', 'utp', 'zona_utp', 
             'curva_inundacao', 'faixa_servidao', 'sistema_viario'
         ];

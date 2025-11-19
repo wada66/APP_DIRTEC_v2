@@ -232,6 +232,18 @@ def inserir():
 
                 
                 # Inserção no imóvel usando os ids obtidos
+                
+                latitude = formulario.get("latitude")
+                longitude = formulario.get("longitude")
+                area = formulario.get("area")
+
+                if latitude:
+                    latitude = latitude.replace(',', '.')  # Converte vírgula para ponto
+                if longitude:
+                    longitude = longitude.replace(',', '.')  # Converte vírgula para ponto
+                if area:
+                    area = area.replace(',', '.')  # Converte área também!
+                    
                 cur.execute("""
                     INSERT INTO imovel (matricula_imovel, zona_apa, zona_utp, classificacao_viaria, curva_inundacao, manancial, area, localidade_imovel, latitude, longitude, faixa_servidao)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -243,10 +255,10 @@ def inserir():
                     formulario.get("sistema_viario") or None,
                     formulario.get("curva_inundacao") or None,
                     formulario.get("manancial") or None,
-                    formulario.get("area") or None,
+                    area or None,
                     formulario.get("localidade_imovel") or None,
-                    formulario.get("latitude") or None,
-                    formulario.get("longitude") or None,
+                    latitude or None,
+                    longitude or None,
                     formulario.get("faixa_servidao") or None,
                 ))
 

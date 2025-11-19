@@ -323,14 +323,16 @@
         <div class="checkbox-inline">
             <label>
                 Interesse Social:
-                <input type="checkbox" id="interesse_social" name="interesse_social" {% if processo.interesse_social %}checked{% endif %} disabled />
+                <input type="checkbox" id="interesse_social" name="interesse_social" 
+                    {% if processo.interesse_social %}checked{% endif %} />
             </label>
         </div>
 
         <div class="checkbox-inline">
             <label>
                 Lei inclui perímetro urbano:
-                <input type="checkbox" id="lei_inclui_perimetro_urbano" name="lei_inclui_perimetro_urbano" {% if processo.perimetro_urbano %}checked{% endif %} disabled />
+                <input type="checkbox" id="perimetro_urbano" name="perimetro_urbano" 
+                    {% if processo.perimetro_urbano %}checked{% endif %} />
             </label>
         </div>
 
@@ -378,6 +380,57 @@
         </label>
 
         <label>
+            Área (m²):
+            <input type="text" id="area" name="area" 
+                value="{{ processo.area or '' }}"
+                placeholder="Ex: 150,75"
+                class="decimal-input"
+                {% if processo.area %}readonly{% endif %}
+                title="Digite a área usando vírgula como separador decimal">
+            {% if processo.area %}
+            <button type="button" class="btn-editar-congelado" id="btn-editar-area">Editar</button>
+            {% endif %}
+        </label>
+
+        <label>
+            Localidade do Imóvel:
+            <textarea id="localidade_imovel" name="localidade_imovel" 
+                    placeholder="Descreva a localização do imóvel"
+                    maxlength="500"
+                    {% if processo.localidade_imovel %}readonly{% endif %}
+                    style="width: 100%; padding: 12px; margin-top: 8px; border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Poppins', sans-serif; resize: vertical;">{{ processo.localidade_imovel or '' }}</textarea>
+            {% if processo.localidade_imovel %}
+            <button type="button" class="btn-editar-congelado" id="btn-editar-localidade_imovel">Editar</button>
+            {% endif %}
+        </label>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <label>
+                Latitude:
+                <input type="text" id="latitude" name="latitude" 
+                    value="{{ processo.latitude or '' }}"
+                    placeholder="Ex: -23,550520"
+                    class="coordenada-input"
+                    {% if processo.latitude %}readonly{% endif %}>
+                {% if processo.latitude %}
+                <button type="button" class="btn-editar-congelado" id="btn-editar-latitude">Editar</button>
+                {% endif %}
+            </label>
+            
+            <label>
+                Longitude:
+                <input type="text" id="longitude" name="longitude" 
+                    value="{{ processo.longitude or '' }}"
+                    placeholder="Ex: -46,633308" 
+                    class="coordenada-input"
+                    {% if processo.longitude %}readonly{% endif %}>
+                {% if processo.longitude %}
+                <button type="button" class="btn-editar-congelado" id="btn-editar-longitude">Editar</button>
+                {% endif %}
+            </label>
+        </div>
+
+        <label>
             Prioridade:
             <select id="prioridade" name="prioridade" {% if processo.prioridade %}disabled{% endif %}>
                 <option value="">--Selecione--</option>
@@ -403,19 +456,15 @@
         <div>
             <label style="position: relative;">
                 Possui APA?
-                <input type="checkbox" id="possui_apa" class="trigger-condicional" 
-                data-target="#apa-container"
+                <input type="checkbox" id="possui_apa" name="possui_apa" 
                 {% if processo.apa or processo.zona_apa %}checked{% endif %} />
-                {% if processo.apa %}
-                <button type="button" class="btn-editar-congelado" id="btn-editar-possui_apa">Editar</button>
-                {% endif %}
             </label>
         </div>
 
         <div class="campo-condicional" id="apa-container" style="{{ 'display:block;' if processo.apa else 'display:none;' }}">
             <label>
                 Selecione a APA:
-                <select id="apa" name="apa" {% if processo.apa %}disabled{% endif %}>
+                <select id="apa" name="apa" {% if processo.apa %}readonly{% endif %}>
                     <option value="">--Selecione--</option>
                     {% for opcao in enums.apa %}
                     <option value="{{ opcao }}" {% if processo.apa == opcao %}selected{% endif %}>{{ opcao }}</option>
@@ -427,7 +476,7 @@
         <div class="campo-condicional" id="zona-apa-container" style="{{ 'display:block;' if processo.zona_apa else 'display:none;' }}">
             <label>
                 Zona da APA:
-                <select id="zona_apa" name="zona_apa" {% if processo.zona_apa %}disabled{% endif %}>
+                <select id="zona_apa" name="zona_apa" {% if processo.zona_apa %}readonly{% endif %}>
                     <option value="">--Selecione--</option>
                     {% if processo.zona_apa %}
                     <option value="{{ processo.zona_apa }}" selected>{{ processo.zona_apa }}</option>
@@ -440,19 +489,15 @@
         <div>
             <label style="position: relative;">
                 Possui UTP?
-                <input type="checkbox" id="possui_utp" class="trigger-condicional" 
-                data-target="#utp-container"
+                <input type="checkbox" id="possui_utp" name="possui_utp" 
                 {% if processo.utp or processo.zona_utp %}checked{% endif %} />
-                {% if processo.utp %}
-                <button type="button" class="btn-editar-congelado" id="btn-editar-possui_utp">Editar</button>
-                {% endif %}
             </label>
         </div>
 
         <div class="campo-condicional" id="utp-container" style="{{ 'display:block;' if processo.utp else 'display:none;' }}">
             <label>
                 Selecione a UTP:
-                <select id="utp" name="utp" {% if processo.utp %}disabled{% endif %}>
+                <select id="utp" name="utp" {% if processo.utp %}readonly{% endif %}>
                     <option value="">--Selecione--</option>
                     {% for opcao in enums.utp %}
                     <option value="{{ opcao }}" {% if processo.utp == opcao %}selected{% endif %}>{{ opcao }}</option>
@@ -464,7 +509,7 @@
         <div class="campo-condicional" id="zona-utp-container" style="{{ 'display:block;' if processo.zona_utp else 'display:none;' }}">
             <label>
                 Zona da UTP:
-                <select id="zona_utp" name="zona_utp" {% if processo.zona_utp %}disabled{% endif %}>
+                <select id="zona_utp" name="zona_utp" {% if processo.zona_utp %}readonly{% endif %}>
                     <option value="">--Selecione--</option>
                     {% if processo.zona_utp %}
                     <option value="{{ processo.zona_utp }}" selected>{{ processo.zona_utp }}</option>
@@ -477,22 +522,21 @@
         <div>
             <label style="position: relative;">
                 Possui Curva de Inundação?
-                <input type="checkbox" id="possui_curva" class="trigger-condicional" data-target="curva_inundacao" 
-                    {% if processo.curva_inundacao %}checked{% endif %} />
-                {% if processo.curva_inundacao %}
-                <button type="button" class="btn-editar-congelado" id="btn-editar-possui_curva">Editar</button>
-                {% endif %}
+                <input type="checkbox" id="possui_curva" name="possui_curva" 
+                {% if processo.curva_inundacao %}checked{% endif %} />
             </label>
         </div>
 
         <div class="campo-condicional" id="curva-inundacao-container" style="{{ 'display:block;' if processo.curva_inundacao else 'display:none;' }}">
             <label>
                 Curva de Inundação:
-                <select id="curva_inundacao" name="curva_inundacao" {% if processo.curva_inundacao %}disabled{% endif %}>
+                <select id="curva_inundacao" name="curva_inundacao" {% if processo.curva_inundacao %}readonly{% endif %}>
                     <option value="">--Selecione--</option>
                     {% for opcao in curva_inundacao %}
                         {% set opcao_limpa = opcao.replace('(', '').replace(')', '').replace('"', '') %}
-                        <option value="{{ opcao }}" {% if processo.curva_inundacao == opcao_limpa %}selected{% endif %}>{{ opcao_limpa }}</option>
+                        <option value="{{ opcao_limpa }}" {% if processo.curva_inundacao == opcao_limpa %}selected{% endif %}>
+                            {{ opcao_limpa }}
+                        </option>
                     {% endfor %}
                 </select>
             </label>
@@ -502,11 +546,8 @@
         <div>
             <label style="position: relative;">
                 Possui Faixa de Servidão?
-                <input type="checkbox" id="possui_faixa" class="trigger-condicional" data-target="faixa_servidao" 
-                    {% if processo.faixa_servidao %}checked{% endif %} />
-                {% if processo.faixa_servidao %}
-                <button type="button" class="btn-editar-congelado" id="btn-editar-possui_faixa">Editar</button>
-                {% endif %}
+                <input type="checkbox" id="possui_faixa" name="possui_faixa" 
+                {% if processo.faixa_servidao %}checked{% endif %} />
             </label>
         </div>
 
@@ -514,11 +555,13 @@
         <div class="campo-condicional" id="faixa-servidao-container" style="{{ 'display:block;' if processo.faixa_servidao else 'display:none;' }}">
             <label>
                 Faixa de Servidão:
-                <select id="faixa_servidao" name="faixa_servidao" {% if processo.faixa_servidao %}disabled{% endif %}>
+                <select id="faixa_servidao" name="faixa_servidao" {% if processo.faixa_servidao %}readonly{% endif %}>
                     <option value="">--Selecione--</option>
                     {% for opcao in faixa_servidao %}
                         {% set opcao_limpa = opcao.replace('(', '').replace(')', '').replace('"', '') %}
-                        <option value="{{ opcao }}" {% if processo.faixa_servidao == opcao_limpa %}selected{% endif %}>{{ opcao_limpa }}</option>
+                        <option value="{{ opcao_limpa }}" {% if processo.faixa_servidao == opcao_limpa %}selected{% endif %}>
+                            {{ opcao_limpa }}
+                        </option>
                     {% endfor %}
                 </select>
             </label>
@@ -528,12 +571,8 @@
         <div>
             <label style="position: relative;">
                 Possui Diretriz Viária?
-                <input type="checkbox" id="possui_diretriz" class="trigger-condicional" 
-                data-target="#diretriz-viaria-container"
+                <input type="checkbox" id="possui_diretriz" name="possui_diretriz" 
                 {% if processo.sistema_viario %}checked{% endif %} />
-                {% if processo.sistema_viario %}
-                <button type="button" class="btn-editar-congelado" id="btn-editar-possui_diretriz">Editar</button>
-                {% endif %}
             </label>
         </div>
 
@@ -566,6 +605,8 @@ function criarBotaoEditarUniversal(campoId, botaoId, textoBotao = 'Editar') {
     if (!campo) {
         console.log(`❌ Campo ${campoId} não encontrado`);
         return;
+
+        if (campo.type === 'checkbox') return;
     }
     
     // Remove botão existente se houver
@@ -812,13 +853,15 @@ document.querySelectorAll('.trigger-condicional').forEach(checkbox => {
             'tipologia', 'municipio', 'zona_urbana', 'macrozona_municipal',
             'situacao_localizacao', 'responsavel_localizacao', 
             'inicio_localizacao', 'fim_localizacao',
-            'nome_condominio', 'interesse_social', 'lei_inclui_perimetro_urbano',
+            'nome_condominio', //'interesse_social', 'lei_inclui_perimetro_urbano', 
             'nome_requerente', 'tipo_requerente', 'cpf_requerente', 
             'cnpj_requerente', 'nome_proprietario', 'cpf_cnpj_proprietario',
             'imovel_matricula', 'prioridade', 'complexidade',
             // CHECKBOXES "POSSUI"
-            'possui_apa', 'possui_utp', 'possui_curva', 'possui_faixa', 'possui_diretriz',
+            //'possui_apa', 'possui_utp', 'possui_curva', 'possui_faixa', 'possui_diretriz',
             // CAMPOS CONDICIONAIS
+            'area', 'localidade_imovel', 'latitude', 'longitude',
+            'prioridade', 'complexidade',
             'apa', 'zona_apa', 'utp', 'zona_utp', 
             'curva_inundacao', 'faixa_servidao', 'sistema_viario'
         ];
