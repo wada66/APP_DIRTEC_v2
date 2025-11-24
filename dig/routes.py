@@ -267,7 +267,7 @@ def preencher_tecnico(protocolo):
                         
                         # 🎯 REGRA 1: Checkboxes sempre atualizam (mesmo quando desmarcados)
                         if campo in ['interesse_social', 'perimetro_urbano']:
-                            valor_checkbox = formulario.get(campo) == "on"
+                            valor_checkbox = formulario.get(campo)
                             if valor_checkbox != valor_atual:
                                 deve_atualizar = True
                                 valor_final = valor_checkbox
