@@ -221,7 +221,7 @@ def preencher_tecnico(protocolo):
                     # Preparar UPDATE dinâmico apenas para campos modificados
                     campos_para_atualizar = []
                     valores_para_atualizar = []
-                    
+
                     # Campos da tabela processo que podem ser atualizados
                     campos_processo_permitidos = [
                         "observacoes", "pasta_numero", "solicitacao_requerente", "resposta_departamento",
@@ -229,10 +229,12 @@ def preencher_tecnico(protocolo):
                         "inicio_localizacao", "fim_localizacao", "nome_ou_loteamento_do_condominio_a_ser_aprovado", 
                         "interesse_social", "perimetro_urbano", "matricula_imovel"
                     ]
-                    
+
                     for campo in campos_processo_permitidos:
                         valor_formulario = formulario.get(campo)
                         valor_atual = processo_dict.get(campo)
+                        
+                        print(f"🔍 DEBUG {campo}: formulario='{valor_formulario}', atual='{valor_atual}'")
                         
                         if campo == 'pasta_numero' and valor_formulario and valor_formulario != '':
                             try:
@@ -245,38 +247,56 @@ def preencher_tecnico(protocolo):
                                 print(f"✅ Pasta {valor_formulario} criada/verificada")
                             except Exception as e:
                                 print(f"❌ Erro ao criar pasta {valor_formulario}: {e}")
-                                # Se não conseguir criar, mantém o valor mas pode dar erro na FK
-                                # Ou pode definir como None: valor_formulario = None
-                                                                
-                       # 🎯 🔥 TRATAMENTO PARA VALORES VAZIOS EM CAMPOS CRÍTICOS
+                        
+                        # 🎯 🔥 TRATAMENTO PARA VALORES VAZIOS EM CAMPOS CRÍTICOS
                         if valor_formulario == '':
                             if campo in [
-                                # 🎯 CAMPOS NOVOS IDENTIFICADOS NOS ERROS
-                                'requerente', 'resposta_departamento', 'solicitacao_requerente', 'tramitacao',
-                                
-                                # 🎯 CAMPOS QUE JÁ ESTAVAM AQUI
+                                # 🎯 CAMPOS QUE DEVEM SER NULL QUANDO VAZIOS
+                                'requerente', 'resposta_departamento', 'solicitacao_requerente', 'tramitacao', 'pasta_numero',
                                 'inicio_localizacao', 'fim_localizacao', 'responsavel_localizacao',
-                                
-                                # 🎯 OUTROS CAMPOS QUE SÃO SELECTS/CHAVES ESTRANGEIRAS
                                 'tipologia', 'municipio', 'prioridade', 'complexidade', 'sistema_viario',
-                                'zona_urbana', 'macrozona_municipal', 'apa', 'utp', 'curva_inundacao', 'faixa_servidao'
+                                'zona_urbana', 'macrozona_municipal', 'apa', 'utp', 'curva_inundacao', 'faixa_servidao',
+                                'observacoes', 'situacao_localizacao', 'nome_ou_loteamento_do_condominio_a_ser_aprovado'
                             ]:
                                 valor_formulario = None
                                 print(f"🔧 Campo {campo} convertido de vazio para NULL")
                         
-                        # Só atualiza se o campo foi preenchido no formulário E é diferente do atual
-                        if valor_formulario is not None and valor_formulario != valor_atual:
+                        # 🎯 🚨 CORREÇÃO CRÍTICA: LÓGICA DE ATUALIZAÇÃO MODIFICADA
+                        deve_atualizar = False
+                        valor_final = valor_formulario
+                        
+                        # 🎯 REGRA 1: Checkboxes sempre atualizam (mesmo quando desmarcados)
+                        if campo in ['interesse_social', 'perimetro_urbano']:
+                            valor_checkbox = formulario.get(campo)
+                            if valor_checkbox != valor_atual:
+                                deve_atualizar = True
+                                valor_final = valor_checkbox
+                                print(f"✅ Checkbox {campo} será atualizado: {valor_atual} -> {valor_final}")
+                        
+                        # 🎯 REGRA 2: Campos normais atualizam se vieram no formulário
+                        elif campo in formulario:
+                            if valor_formulario != valor_atual:
+                                deve_atualizar = True
+                                print(f"✅ Campo {campo} será atualizado: '{valor_atual}' -> '{valor_final}'")
+                            else:
+                                print(f"⏭️ Campo {campo} não será atualizado (valores iguais)")
+                        else:
+                            print(f"⏭️ Campo {campo} não veio no formulário - mantém valor atual")
+                        
+                        # 🎯 EXECUTAR A ATUALIZAÇÃO SE NECESSÁRIO
+                        if deve_atualizar:
                             campos_para_atualizar.append(f"{campo} = %s")
-                            valores_para_atualizar.append(valor_formulario)
-                            print(f"📝 Campo {campo} será atualizado: '{valor_atual}' -> '{valor_formulario}'")
-                    
+                            valores_para_atualizar.append(valor_final)
+
                     # Executar UPDATE apenas se houver campos para atualizar
                     if campos_para_atualizar:
                         campos_sql = ", ".join(campos_para_atualizar)
                         valores_para_atualizar.append(protocolo)
                         sql_atualizar_processo = f"UPDATE processo SET {campos_sql} WHERE protocolo = %s"
                         print(f"🔍 SQL Processo: {sql_atualizar_processo}")
+                        print(f"🎯 Valores: {valores_para_atualizar}")
                         cur.execute(sql_atualizar_processo, valores_para_atualizar)
+                        print(f"✅ UPDATE executado: {len(campos_para_atualizar)} campos atualizados")
                     else:
                         print("ℹ️ Nenhum campo da tabela processo para atualizar")
 

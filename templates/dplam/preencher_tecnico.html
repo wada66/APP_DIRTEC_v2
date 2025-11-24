@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <title>Formulário Processo Complementação</title>
     <style>
         :root {
@@ -1048,6 +1049,118 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 500);
         }
     }
+});
+// ========== 🎯 CORREÇÃO DAS CASCATAS - ADICIONE ISSO NO FINAL DO SEU SCRIPT ==========
+
+// 2.1 ADICIONA CLASSE AOS CHECKBOXES CONDICIONAIS
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Configurando checkboxes condicionais...');
+    
+    // Lista de checkboxes que controlam cascatas
+    const checkboxesCondicionais = [
+        { id: 'possui_apa', target: '#apa-container' },
+        { id: 'possui_utp', target: '#utp-container' },
+        { id: 'possui_curva', target: '#curva-inundacao-container' },
+        { id: 'possui_faixa', target: '#faixa-servidao-container' },
+        { id: 'possui_diretriz', target: '#diretriz-viaria-container' }
+    ];
+    
+    // Adiciona classe e data-target a cada checkbox
+    checkboxesCondicionais.forEach(config => {
+        const checkbox = document.getElementById(config.id);
+        if (checkbox) {
+            checkbox.classList.add('trigger-condicional');
+            checkbox.setAttribute('data-target', config.target);
+            console.log(`✅ Configurado: ${config.id} -> ${config.target}`);
+        }
+    });
+});
+
+// 2.2 LÓGICA JQUERY PARA AS CASCATAS - EXECUTAR DEPOIS DO JQUERY CARREGAR
+$(document).ready(function() {
+    console.log('🎯 Iniciando sistema de cascatas...');
+    
+    // A) CONTROLE BÁSICO DOS CHECKBOXES CONDICIONAIS
+    $('.trigger-condicional').each(function () {
+        var $chk = $(this);
+        var target = $chk.data('target');
+        if (!target) return;
+        
+        // Configura estado inicial
+        $(target).toggle($chk.is(':checked'));
+        
+        // Evento quando checkbox muda
+        $chk.on('change', function () {
+            console.log(`🔘 ${this.id} alterado para: ${this.checked}`);
+            $(target).toggle(this.checked);
+            if (!this.checked) {
+                // Se desmarcou, limpa os campos
+                $(target).find('select, input').val('');
+            }
+        });
+    });
+
+    // B) CASCATA APA -> ZONAS APA
+    $('#apa').on('change', function () {
+        var apa = $(this).val();
+        console.log(`🌿 APA selecionada: ${apa}`);
+        
+        $('#zona-apa-container').toggle(!!apa);
+        
+        if (apa) {
+            // Carrega zonas da APA via AJAX
+            $.getJSON('/get_zonas_apa/' + encodeURIComponent(apa), function (data) {
+                console.log(`📍 Zonas APA carregadas:`, data);
+                var $sel = $('#zona-apa');
+                $sel.html('<option value="">--Selecione--</option>');
+                $.each(data, function (i, item) {
+                    $sel.append($('<option>', { value: item, text: item }));
+                });
+            }).fail(function() {
+                console.error('❌ Erro ao carregar zonas APA');
+            });
+        } else {
+            $('#zona-apa').html('<option value="">--Selecione--</option>');
+        }
+    });
+
+    // C) CASCATA UTP -> ZONAS UTP  
+    $('#utp').on('change', function () {
+        var utp = $(this).val();
+        console.log(`🏞️ UTP selecionada: ${utp}`);
+        
+        $('#zona-utp-container').toggle(!!utp);
+        
+        if (utp) {
+            // Carrega zonas da UTP via AJAX
+            $.getJSON('/get_zonas_utp/' + encodeURIComponent(utp), function (data) {
+                console.log(`📍 Zonas UTP carregadas:`, data);
+                var $sel = $('#zona-utp');
+                $sel.html('<option value="">--Selecione--</option>');
+                $.each(data, function (i, item) {
+                    $sel.append($('<option>', { value: item, text: item }));
+                });
+            }).fail(function() {
+                console.error('❌ Erro ao carregar zonas UTP');
+            });
+        } else {
+            $('#zona-utp').html('<option value="">--Selecione--</option>');
+        }
+    });
+
+    // D) DISPARAR EVENTOS INICIAIS PARA CONFIGURAR ESTADO
+    setTimeout(function() {
+        console.log('🚀 Disparando eventos iniciais...');
+        
+        // Dispara eventos nos checkboxes marcados
+        $('.trigger-condicional:checked').trigger('change');
+        
+        // Dispara eventos nos selects com valores
+        if ($('#apa').val()) $('#apa').trigger('change');
+        if ($('#utp').val()) $('#utp').trigger('change');
+        
+        console.log('✅ Cascatas inicializadas!');
+    }, 200);
 });
 </script>
 </body>
