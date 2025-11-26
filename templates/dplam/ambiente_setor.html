@@ -106,13 +106,23 @@
         background-color: #1f5f8a;
     }
 
-    .badge-finalizada {
+    /* 🎯 NOVO: Estilos para status */
+    .status-finalizada {
         background-color: #e74c3c;
         color: white;
         padding: 6px 10px;
         border-radius: 5px;
-        margin-left: 5px;
         font-weight: bold;
+        font-size: 0.9em;
+    }
+
+    .status-andamento {
+        background-color: #f39c12;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        font-size: 0.9em;
     }
 
     p {
@@ -125,7 +135,7 @@
         flex-wrap: nowrap;
         gap: 10px;
         align-items: center;
-        justify-content: center;   /* agora centraliza os botões no meio da célula */
+        justify-content: center;
         white-space: nowrap;
         height: 100%;
         padding: 0 !important;
@@ -136,8 +146,6 @@
     .acoes span {
         flex-shrink: 0;
     }
-
-
 
     @media (max-width: 768px) {
         table, th, td {
@@ -229,6 +237,7 @@
         <th>Protocolo</th>
         <th>Tipologia</th>
         <th>Município</th>
+        <th>Status</th>  <!-- 🎯 NOVA COLUNA -->
         <th>Ações</th>
     </tr>
 {% for protocolo, tipologia, municipio, situacao_analise in meus %}
@@ -236,32 +245,45 @@
   <td>{{ protocolo }}</td>
   <td>{{ tipologia }}</td>
   <td>{{ municipio }}</td>
-  <td class ="acoes">
-    <a href="{{ url_for('dplam.visualizar_processo', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Visualizar</a>
-    <a href="{{ url_for('dplam.preencher_tecnico', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Complementar</a>
-
+  
+  <!-- 🎯 COLUNA STATUS -->
+  <td>
     {% if situacao_analise == "FINALIZADA" %}
-      <span class="badge-finalizada">FINALIZADA</span>
+      <span class="status-finalizada">FINALIZADO</span>
+    {% else %}
+      <span class="status-andamento">EM ANDAMENTO</span>
+    {% endif %}
+  </td>
+
+  <td class="acoes">
+    <!-- 🎯 VISUALIZAR - Sempre disponível -->
+    <a href="{{ url_for('dplam.visualizar_processo', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Visualizar</a>
+
+    {% if situacao_analise != "FINALIZADA" %}
+      <!-- 🎯 COMPLEMENTAR - Apenas para processos NÃO FINALIZADOS -->
+      <a href="{{ url_for('dplam.preencher_tecnico', protocolo=protocolo) }}" class="btn btn-success" style="margin-right: 5px;">Complementar</a>
+
+      <!-- 🎯 ENCAMINHAR - Apenas para processos NÃO FINALIZADOS -->
+      <div style="display:inline-block; position:relative; margin-left: 10px;">
+        <button type="button" class="btn btn-primary" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar</button>
+        <form id="form-encaminhar-{{ protocolo }}" method="get"
+          style="display:none; position:absolute; top:100%; left:0; background:#fff; border:1px solid #ddd; padding:10px; border-radius:5px; box-shadow:0 0 5px #ccc; z-index:10;">
+          <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')" style="margin-right: 5px;">
+            <option value="" disabled selected>Selecione setor</option>
+            {% for s in setores %}
+              {% if s != setor %}
+                <option value="{{ s }}">{{ s }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </form>
+      </div>
     {% endif %}
 
-    {% if pdfs_por_protocolo[protocolo] %}
-      <a href="{{ url_for('baixar_pdf', filename=pdfs_por_protocolo[protocolo]) }}" class="btn btn-primary" style="margin-left: 10px;" target="_blank">Baixar Relatório PDF</a>
+    <!-- 🎯 BAIXAR PDF - Apenas para processos FINALIZADOS -->
+    {% if situacao_analise == "FINALIZADA" and pdfs_por_protocolo[protocolo] %}
+      <a href="{{ url_for('baixar_pdf', filename=pdfs_por_protocolo[protocolo]) }}" class="btn btn-primary" style="margin-left: 10px;" target="_blank">Baixar PDF</a>
     {% endif %}
-
-    <div style="display:inline-block; position:relative; margin-left: 10px;">
-      <button type="button" class="btn btn-primary" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar</button>
-      <form id="form-encaminhar-{{ protocolo }}" method="get"
-        style="display:none; position:absolute; top:100%; left:0; background:#fff; border:1px solid #ddd; padding:10px; border-radius:5px; box-shadow:0 0 5px #ccc; z-index:10;">
-        <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')" style="margin-right: 5px;">
-          <option value="" disabled selected>Selecione setor</option>
-          {% for s in setores %}
-            {% if s != setor %}
-              <option value="{{ s }}">{{ s }}</option>
-            {% endif %}
-          {% endfor %}
-        </select>
-      </form>
-    </div>
 
   </td>
 </tr>
