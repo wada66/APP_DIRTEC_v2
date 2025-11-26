@@ -215,6 +215,26 @@ def inserir():
                     print(f"✅ Proprietário inserido. ID: {proprietario_id}")
               
                 # Inserir imóvel
+                
+                # ⚠️ CORREÇÃO: Gerar matrícula aleatória que caiba em 20 caracteres
+                matricula_imovel = formulario.get("matricula_imovel")
+
+                if not matricula_imovel or not matricula_imovel.strip():
+                    # Gerar matrícula aleatória no formato: NOMAT-AAAAMMDD-RAND
+                    import random
+                    timestamp = datetime.now().strftime("%Y%m%d")
+                    random_suffix = random.randint(1000, 9999)
+                    matricula_imovel = f"NOMAT-{timestamp}-{random_suffix}"
+                    
+                    # Garantir que não ultrapasse 20 caracteres
+                    if len(matricula_imovel) > 20:
+                        matricula_imovel = matricula_imovel[:20]
+                    
+                    print(f"🏠 Gerada matrícula automática: {matricula_imovel} (tamanho: {len(matricula_imovel)})")
+
+                # AGORA SEMPRE TEMOS MATRÍCULA VÁLIDA - podemos inserir o imóvel
+                print(f"🏠 Inserindo dados do imóvel com matrícula: {matricula_imovel}")
+
                 zona_apa_nome = formulario.get("zona_apa")
                 zona_utp_nome = formulario.get("zona_utp")
 
@@ -242,7 +262,7 @@ def inserir():
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (matricula_imovel) DO NOTHING
                 """, (
-                    formulario.get("matricula_imovel"),
+                    matricula_imovel,
                     zona_apa_id,
                     zona_utp_id,
                     formulario.get("sistema_viario") or None,
@@ -255,20 +275,18 @@ def inserir():
                     formulario.get("faixa_servidao") or None,
                 ))
 
-                if formulario.get("matricula_imovel") and formulario.get("municipio"):
+                if matricula_imovel and formulario.get("municipio"):
                     cur.execute("""
                         INSERT INTO imovel_municipio (imovel_matricula, municipio_nome)
                         VALUES (%s, %s)
                         ON CONFLICT DO NOTHING
-                    """, (formulario["matricula_imovel"], formulario["municipio"]))
+                    """, (matricula_imovel, formulario["municipio"]))
 
-                imovel_matricula = formulario.get("matricula_imovel")
-
-                if imovel_matricula and proprietario_id:
+                if matricula_imovel and proprietario_id:
                     cur.execute("""
                         INSERT INTO proprietario_imovel (imovel_matricula, proprietario_id)
                         VALUES (%s, %s)
-                    """, (imovel_matricula, proprietario_id))
+                    """, (matricula_imovel, proprietario_id))
                     
                 sigla_zona_urbana = formulario.get("zona_urbana")
                 sigla_macrozona = formulario.get("macrozona_municipal")
@@ -281,7 +299,7 @@ def inserir():
                 macrozona_id = cur.fetchone()
                 macrozona_id = macrozona_id[0] if macrozona_id else None
 
-                if formulario.get("matricula_imovel") and (zona_urbana_id or macrozona_id):
+                if matricula_imovel and (zona_urbana_id or macrozona_id):
                     print(f"🎯 TENTANDO INSERT: matricula='{formulario.get('matricula_imovel')}', zona_id={zona_urbana_id}, macro_id={macrozona_id}")
                     
                     try:
@@ -292,7 +310,7 @@ def inserir():
                             DO UPDATE SET 
                                 zona_urbana_id = EXCLUDED.zona_urbana_id,
                                 macrozona_id = EXCLUDED.macrozona_id
-                        """, (formulario.get("matricula_imovel"), zona_urbana_id, macrozona_id))
+                        """, (matricula_imovel, zona_urbana_id, macrozona_id))
                     except Exception as e:
                         print(f"❌ ERRO NO INSERT: {e}")
                         conn.rollback()
@@ -316,7 +334,7 @@ def inserir():
                 """, (
                     formulario.get("protocolo"),
                     formulario.get("observacoes"),
-                    formulario.get("matricula_imovel"),
+                    matricula_imovel,
                     formulario.get("numero_pasta") or None,
                     formulario.get("solicitacao_requerente") or None,
                     formulario.get("resposta_departamento") or None,
