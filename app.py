@@ -161,7 +161,6 @@ def inserir():
     interesse_social = formulario.get("interesse_social") == "on"
     lei_inclui_perimetro_urbano = formulario.get("perimetro_urbano") == "on"
 
-
     inicio_localizacao = formulario.get("inicio_localizacao") or None
     fim_localizacao = formulario.get("fim_localizacao") or None
     inicio_analise = datetime.now()
@@ -196,7 +195,6 @@ def inserir():
                     requerente_id = result[0] if result else None
                     print(f"✅ Requerente inserido. ID: {requerente_id}")
 
-                # 🎯 CRÍTICO: MANTER ESTA PARTE DA ROBUSTA (tratamento de NULL)
                 if not cpf_cnpj_requerente or not nome_requerente or not tipo_requerente:
                     cpf_cnpj_requerente = None
                     print("🔧 Requerente não preenchido - campo será NULL no processo")
@@ -220,29 +218,24 @@ def inserir():
                 zona_apa_nome = formulario.get("zona_apa")
                 zona_utp_nome = formulario.get("zona_utp")
 
-                # Obter id_zona_apa a partir do nome
                 cur.execute("SELECT id_zona_apa FROM zona_apa WHERE nome_zona_apa = %s", (zona_apa_nome,))
                 zona_apa_id = cur.fetchone()
                 zona_apa_id = zona_apa_id[0] if zona_apa_id else None
 
-                # Obter id_zona_utp a partir do nome
                 cur.execute("SELECT id_zona_utp FROM zona_utp WHERE nome_zona_utp = %s", (zona_utp_nome,))
                 zona_utp_id = cur.fetchone()
                 zona_utp_id = zona_utp_id[0] if zona_utp_id else None
 
-                
-                # Inserção no imóvel usando os ids obtidos
-                
                 latitude = formulario.get("latitude")
                 longitude = formulario.get("longitude")
                 area = formulario.get("area")
 
                 if latitude:
-                    latitude = latitude.replace(',', '.')  # Converte vírgula para ponto
+                    latitude = latitude.replace(',', '.')
                 if longitude:
-                    longitude = longitude.replace(',', '.')  # Converte vírgula para ponto
+                    longitude = longitude.replace(',', '.')
                 if area:
-                    area = area.replace(',', '.')  # Converte área também!
+                    area = area.replace(',', '.')
                     
                 cur.execute("""
                     INSERT INTO imovel (matricula_imovel, zona_apa, zona_utp, classificacao_viaria, curva_inundacao, manancial, area, localidade_imovel, latitude, longitude, faixa_servidao)
@@ -262,7 +255,6 @@ def inserir():
                     formulario.get("faixa_servidao") or None,
                 ))
 
-                # Depois de inserir imóvel
                 if formulario.get("matricula_imovel") and formulario.get("municipio"):
                     cur.execute("""
                         INSERT INTO imovel_municipio (imovel_matricula, municipio_nome)
@@ -280,9 +272,7 @@ def inserir():
                     
                 sigla_zona_urbana = formulario.get("zona_urbana")
                 sigla_macrozona = formulario.get("macrozona_municipal")
-                
 
-                # Obter IDs a partir dos nomes (MESMA LÓGICA DA APA/UTP)
                 cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (sigla_zona_urbana,))
                 zona_urbana_id = cur.fetchone()
                 zona_urbana_id = zona_urbana_id[0] if zona_urbana_id else None
@@ -291,7 +281,6 @@ def inserir():
                 macrozona_id = cur.fetchone()
                 macrozona_id = macrozona_id[0] if macrozona_id else None
 
-               # Inserir na tabela associativa
                 if formulario.get("matricula_imovel") and (zona_urbana_id or macrozona_id):
                     print(f"🎯 TENTANDO INSERT: matricula='{formulario.get('matricula_imovel')}', zona_id={zona_urbana_id}, macro_id={macrozona_id}")
                     
@@ -304,12 +293,10 @@ def inserir():
                                 zona_urbana_id = EXCLUDED.zona_urbana_id,
                                 macrozona_id = EXCLUDED.macrozona_id
                         """, (formulario.get("matricula_imovel"), zona_urbana_id, macrozona_id))
-                        
                     except Exception as e:
                         print(f"❌ ERRO NO INSERT: {e}")
                         conn.rollback()
 
-                # Inserir pasta
                 if formulario.get("numero_pasta"):
                     cur.execute("""
                         INSERT INTO pasta (numero_pasta)
@@ -334,7 +321,7 @@ def inserir():
                     formulario.get("solicitacao_requerente") or None,
                     formulario.get("resposta_departamento") or None,
                     formulario.get("tramitacao") or None,
-                    formulario.get("setor") or None,
+                    session.get("setor") or None,
                     formulario.get("tipologia") or None,
                     formulario.get("situacao_localizacao") or None,
                     formulario.get("responsavel_localizacao") or None,
@@ -362,280 +349,79 @@ def inserir():
                     formulario.get("protocolo"),
                     formulario.get("prioridade") or None,
                     formulario.get("complexidade") or None,
-                    
                 ))
-       
-                cur.execute(
-                    "SELECT protocolo FROM processo WHERE protocolo = %s", (formulario.get("protocolo"),)
-                )
-                existe_processo = cur.fetchone()
-    
-                if existe_processo:
-                    print("🎯 === EXECUTANDO UPDATE ===")
-                    
-                    try:
-                        cur.execute(
-                            """
-                            UPDATE processo SET
-                                interesse_social = %s,
-                                perimetro_urbano = %s
-                            WHERE protocolo = %s
-                            """,
-                            (
-                                interesse_social,
-                                lei_inclui_perimetro_urbano,
-                                formulario.get("protocolo")
-                            )
-                        )
-                        print("✅ UPDATE EXECUTADO - fazendo commit...")
-                        conn.commit()  # 👈 COMMIT EXPLÍCITO
-                        print("✅ COMMIT REALIZADO")
-                        
-                    except Exception as e:
-                        print(f"❌ ERRO NO UPDATE: {e}")
-                        conn.rollback()
 
-                    # Atualizar processo e analise
-                    cur.execute(
-                        """
-                        UPDATE processo SET
-                            observacoes = %s,
-                            imovel_matricula = %s,
-                            pasta_numero = %s,
-                            solicitacao_requerente = %s,
-                            resposta_departamento = %s,
-                            tramitacao = %s,
-                            setor_nome = %s,
-                            tipologia = %s,
-                            situacao_localizacao = %s,
-                            responsavel_localizacao = %s,
-                            inicio_localizacao = %s,
-                            fim_localizacao = %s,
-                            dias_uteis_localizacao = %s,
-                            requerente = %s,
-                            nome_ou_loteamento_do_condominio_a_ser_aprovado = %s,
-                            interesse_social = %s,
-                            perimetro_urbano = %s,
-                            data_entrada = %s
-                        WHERE protocolo = %s
-                        """,
-                        (
-                            formulario.get("observacoes"),
-                            formulario.get("matricula_imovel"),
-                            formulario.get("numero_pasta") or None,
-                            formulario.get("solicitacao_requerente") or None,
-                            formulario.get("resposta_departamento") or None,
-                            formulario.get("tramitacao") or None,
-                            session.get("setor"),
-                            formulario.get("tipologia"),
-                            formulario.get("situacao_localizacao"),
-                            formulario.get("responsavel_localizacao_cpf") or None,
-                            inicio_localizacao,
-                            fim_localizacao,
-                            dias_uteis_localizacao,
-                            requerente_id,
-                            formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
-                            interesse_social,
-                            lei_inclui_perimetro_urbano,
-                            data_entrada,
-                            formulario.get("protocolo"),
-                        ),
-                    )
-                    
-                    sigla_zona_urbana = formulario.get("zona_urbana")
-                    sigla_macrozona = formulario.get("macrozona_municipal")
-                    
-                    cur.execute("SELECT id_zona_urbana FROM zona_urbana WHERE sigla_zona_urbana = %s", (sigla_zona_urbana,))
-                    zona_urbana_id = cur.fetchone()
-                    zona_urbana_id = zona_urbana_id[0] if zona_urbana_id else None
-
-                    cur.execute("SELECT id_macrozona FROM macrozona_municipal WHERE sigla_macrozona = %s", (sigla_macrozona,))
-                    macrozona_id = cur.fetchone()
-                    macrozona_id = macrozona_id[0] if macrozona_id else None
-                    
-                    if formulario.get("matricula_imovel") and (zona_urbana_id or macrozona_id):
-                        cur.execute("""
-                            INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id)
-                            VALUES (%s, %s, %s)
-                            ON CONFLICT (imovel_matricula) 
-                            DO UPDATE SET 
-                                zona_urbana_id = EXCLUDED.zona_urbana_id,
-                                macrozona_id = EXCLUDED.macrozona_id
-                        """, (formulario.get("matricula_imovel"), zona_urbana_id, macrozona_id))
-                    # Atualizar analise conforme ação
-                    if acao_finalizar:
-                        situacao_analise = "FINALIZADA"
-                    else:
-                        situacao_analise = "NÃO FINALIZADA"
-
-                    cur.execute(
-                        """
-                        UPDATE analise SET
-                            situacao_analise = %s,
-                            fim_analise = %s,
-                            dias_uteis_analise = %s,
-                            ultima_movimentacao = %s
-                        WHERE processo_protocolo = %s
-                        """,
-                        (
-                            situacao_analise,
-                            fim_analise,
-                            dias_uteis_analise,
-                            datetime.now().date(),
-                            formulario.get("protocolo"),
-                        ),
-                    )
-
-                else:
-                    # Inserir processo e analise
-                    cur.execute(
-                        """
-                        INSERT INTO processo (
-                            protocolo, observacoes, imovel_matricula, pasta_numero, solicitacao_requerente,
-                            resposta_departamento, tramitacao, setor_nome, tipologia, situacao_localizacao,
-                            responsavel_localizacao, inicio_localizacao, fim_localizacao,
-                            dias_uteis_localizacao, requerente,
-                            nome_ou_loteamento_do_condominio_a_ser_aprovado, interesse_social,
-                            data_entrada, perimetro_urbano
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        (
-                            formulario.get("protocolo"),
-                            formulario.get("observacoes"),
-                            formulario.get("matricula_imovel"),
-                            formulario.get("numero_pasta") or None,
-                            formulario.get("solicitacao_requerente") or None,
-                            formulario.get("resposta_departamento") or None,
-                            formulario.get("tramitacao") or None,
-                            session.get("setor"),
-                            formulario.get("tipologia"),
-                            formulario.get("situacao_localizacao"),
-                            formulario.get("responsavel_localizacao_cpf") or None,
-                            inicio_localizacao,
-                            fim_localizacao,
-                            dias_uteis_localizacao,
-                            requerente_id,
-                            formulario.get("nome_ou_loteamento_do_condominio_a_ser_aprovado"),
-                            interesse_social,
-                            data_entrada,
-                            lei_inclui_perimetro_urbano
-                        ),
-                    )
-
-                    cur.execute(
-                        """
-                        INSERT INTO analise (
-                            situacao_analise, responsavel_analise, inicio_analise, fim_analise,
-                            dias_uteis_analise, ultima_movimentacao, processo_protocolo
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        (
-                            "FINALIZADA" if acao_finalizar else "NÃO FINALIZADA",
-                            session.get("cpf_tecnico"),
-                            inicio_analise,
-                            fim_analise,
-                            dias_uteis_analise,
-                            datetime.now().date(),
-                            formulario.get("protocolo"),
-                        ),
-                    )
                 protocolo = formulario.get("protocolo")
 
-                if acao_finalizar:
-                        nome_arquivo = f"{protocolo}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
-                        caminho_pdf = os.path.join("PDFS", nome_arquivo)
-                        os.makedirs("PDFS", exist_ok=True)
-
-                        try:
-                                gerar_pdf(formulario, caminho_pdf)
-                                print(f"PDF gerado com sucesso: {caminho_pdf}")
-                        except Exception as e_pdf:
-                                print(f"Erro ao gerar PDF: {e_pdf}")
-                                return "Erro ao gerar PDF", 500
-
-                        try:
-                            cur.execute("""
-                            INSERT INTO pdf_gerados (processo_protocolo, setor_nome, caminho_pdf, data_geracao)
-                            VALUES (%s, %s, %s, %s)
-                        """, (protocolo, session.get("setor"), caminho_pdf, datetime.now()))
-                            conn.commit()  # Commit explícito para salvar alterações
-                            print(f"Registro PDF inserido no banco para protocolo {protocolo}")
-                        except Exception as e_db:
-                                print(f"Erro ao registrar PDF no banco: {e_db}")
-                                return "Erro ao salvar registro do PDF", 500
-
+                # 🎯 PROCESSAR ENCAMINHAMENTO
                 if acao_encaminhar:
-                            if not setor_destino:
-                                return "Setor destino não informado", 400
-                            blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_destino)
-                            if not blueprint_redirect:
-                                return "Setor inválido para redirecionamento", 400
-                            return redirect(url_for(f"{blueprint_redirect}.ambiente"))
-
-                setor_atual = session.get("setor")
-                blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_atual)
-                if not blueprint_redirect:
-                    return "Setor inválido para redirecionamento", 400
-                if acao_salvar or acao_finalizar:
-                    return redirect(url_for(f"{blueprint_redirect}.ambiente"))
-
-
-                return "Ação desconhecida", 400
-
-    except Exception as e:
-            import traceback
-            print("Erro completo:")
-            traceback.print_exc()
-            print("Dados do formulário:")
-            for k, v in formulario.items():
-                print(f"{k} = {v} ({len(v) if v else 0})")
-                return f"Erro ao inserir/atualizar dados: {e}", 500
-    
-                # Fluxo encaminhar: atualizar setor e responsável, inserir histórico
-            if acao_encaminhar:
-                if not setor_destino:
-                    return "Setor destino não informado", 400
-                blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_destino)
-            else:
-                setor_sessao = session.get("setor")
-                blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_sessao)
-
-                if not blueprint_redirect:
-                    return "Setor inválido para redirecionamento", 400
-
-                return redirect(url_for(f"{blueprint_redirect}.ambiente"))
-            
-            cur.execute(
-                        """
-                        UPDATE processo SET setor_nome = %s WHERE protocolo = %s
-                        """,
-                        (setor_destino, formulario.get("protocolo")),
-                    )
-
-            cur.execute(
-                        """
-                        UPDATE analise SET responsavel_analise = %s WHERE processo_protocolo = %s
-                        """,
-                        (tecnico_origem, formulario.get("protocolo")),
-                    )
-
-            cur.execute(
-                        """
+                    if not setor_destino:
+                        return "Setor destino não informado", 400
+                    
+                    blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_destino)
+                    if not blueprint_redirect:
+                        return "Setor inválido para redirecionamento", 400
+                    
+                    # Atualizar setor do processo
+                    cur.execute("UPDATE processo SET setor_nome = %s WHERE protocolo = %s", (setor_destino, protocolo))
+                    
+                    # Registrar no histórico
+                    cur.execute("""
                         INSERT INTO historico (
                             processo_protocolo, setor_origem, setor_destino,
                             tecnico_responsavel_anterior, tecnico_novo_responsavel,
                             data_encaminhamento
                         ) VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                        """,
-                        (
-                            formulario.get("protocolo"),
-                            setor_origem,
-                            setor_destino,
-                            tecnico_origem,
-                            tecnico_origem,  # pode ajustar se quiser outro responsavel novo
-                        ),
-                    )
+                    """, (
+                        protocolo,
+                        session.get("setor"),
+                        setor_destino,
+                        session.get("cpf_tecnico"),
+                        None,
+                    ))
 
+                # 🎯 PROCESSAR FINALIZAÇÃO (PDF)
+                if acao_finalizar:
+                    nome_arquivo = f"{protocolo}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+                    caminho_pdf = os.path.join("PDFS", nome_arquivo)
+                    os.makedirs("PDFS", exist_ok=True)
+
+                    try:
+                        gerar_pdf(formulario, caminho_pdf)
+                        print(f"PDF gerado com sucesso: {caminho_pdf}")
+                        
+                        cur.execute("""
+                            INSERT INTO pdf_gerados (processo_protocolo, setor_nome, caminho_pdf, data_geracao)
+                            VALUES (%s, %s, %s, %s)
+                        """, (protocolo, session.get("setor"), caminho_pdf, datetime.now()))
+                        print(f"Registro PDF inserido no banco para protocolo {protocolo}")
+                        
+                    except Exception as e_pdf:
+                        print(f"Erro ao gerar PDF: {e_pdf}")
+                        return "Erro ao gerar PDF", 500
+
+                # 🎯 COMMIT PRINCIPAL (ÚNICO)
+                conn.commit()
+                print(f"✅ Processo {protocolo} criado com sucesso!")
+
+                # 🎯 REDIRECIONAMENTO
+                setor_atual = session.get("setor")
+                blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_atual)
+                
+                if not blueprint_redirect:
+                    return "Setor inválido para redirecionamento", 400
+                
+                return redirect(url_for(f"{blueprint_redirect}.ambiente"))
+
+    except Exception as e:
+        import traceback
+        print("Erro completo:")
+        traceback.print_exc()
+        print("Dados do formulário:")
+        for k, v in formulario.items():
+            print(f"{k} = {v} ({len(v) if v else 0})")
+        return f"Erro ao inserir/atualizar dados: {e}", 500
+    
 @app.route("/get_zonas_urbanas/<municipio>")
 def get_zonas_urbanas(municipio):
     conn = psycopg2.connect(
