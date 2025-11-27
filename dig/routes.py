@@ -596,8 +596,8 @@ def preencher_tecnico(protocolo):
                     os.makedirs("PDFS", exist_ok=True)
 
                     try:
-                        from relatorio import gerar_pdf
-                        gerar_pdf(formulario, caminho_pdf)
+                        from relatorio import gerar_pdf_segundo_preenchimento
+                        gerar_pdf_segundo_preenchimento(protocolo, caminho_pdf)
                         print(f"📄 PDF gerado com sucesso: {caminho_pdf}")
                         
                         with conn.cursor() as cur:
