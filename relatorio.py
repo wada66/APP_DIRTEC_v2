@@ -32,6 +32,44 @@ LEGENDAS_AMIGAVEIS = {
     # coloque aqui outras legendas personalizadas que quiser
 }
 
+LEGENDAS_AMIGAVEIS_2 = {
+    "protocolo": "Protocolo",
+    "observacoes": "Observações",
+    "pasta_numero": "Número da Pasta",
+    "solicitacao_requerente": "Solicitação do Requerente",
+    "resposta_departamento": "Resposta do Departamento",
+    "tramitacao": "Tramitação",
+    "tipologia": "Tipologia",
+    "municipio": "Município",
+    "situacao_localizacao": "Situação da Localização",
+    "responsavel_localizacao": "Responsável pela Localização",
+    "responsavel_analise": "Responsável pela Análise",
+    "inicio_localizacao": "Início da Localização",
+    "fim_localizacao": "Fim da Localização",
+    "nome_ou_loteamento_do_condominio_a_ser_aprovado": "Condomínio a Ser Aprovado",
+    "interesse_social": "Interesse Social",
+    "nome_requerente": "Nome do Requerente",
+    "tipo_requerente": "Tipo de Requerente",
+    "cpf_cnpj_requerente": "CPF/CNPJ do Requerente",
+    "nome_proprietario": "Nome do Proprietário",
+    "cpf_cnpj_proprietario": "CPF/CNPJ do Proprietário",
+    "imovel_matricula": "Matrícula do Imóvel",
+    "area": "Área",
+    "localidade_imovel": "Localidade do Imóvel",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "prioridade": "Prioridade",
+    "complexidade": "Complexidade",
+    "zona_apa": "Zona APA",
+    "zona_utp": "Zona UTP",
+    "curva_inundacao": "Curva de Inundação",
+    "faixa_servidao": "Faixa de Servidão",
+    "sistema_viario": "Sistema Viário",
+    "situacao_analise": "Situação da Análise",
+    "perimetro_urbano": "Perímetro Urbano",
+    "zona_urbana": "Zona Urbana",
+    "macrozona_municipal": "Macrozona Municipal"
+}
 
 def gerar_pdf(formulario, caminho):
     pdf = FPDF()
@@ -165,10 +203,29 @@ def gerar_pdf_segundo_preenchimento(protocolo, caminho):
             
             cols = [desc[0] for desc in cur.description]
             dados_completos = dict(zip(cols, row))
+        
+    dados_completos['situacao_analise'] = 'FINALIZADA'
+            
+    # ✅ CONVERTER CPFs PARA NOMES (igual na função original)
+    campos_para_substituir = {
+        "responsavel_analise": "tecnico",
+        "responsavel_localizacao": "tecnico",
+    }
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            for campo, tipo in campos_para_substituir.items():
+                valor = dados_completos.get(campo)
+                if not valor:
+                    continue
+                if tipo == "tecnico":
+                    cur.execute("SELECT nome_tecnico FROM tecnico WHERE cpf_tecnico = %s", (valor,))
+                    result = cur.fetchone()
+                    dados_completos[campo] = result[0] if result else "Desconhecido"
 
     # Função para adicionar linha no PDF (igual à original)
     def add_row(chave, valor):
-        legenda = LEGENDAS_AMIGAVEIS.get(chave, chave.capitalize().replace("_", " "))
+        legenda = LEGENDAS_AMIGAVEIS_2.get(chave, chave.capitalize().replace("_", " "))
         pdf.set_font("Arial", "B", 12)
         pdf.cell(50, 10, f"{legenda}:", border=0, align='R')
         pdf.set_font("Arial", "", 12)

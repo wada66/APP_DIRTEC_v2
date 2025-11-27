@@ -620,14 +620,14 @@ def preencher_tecnico(protocolo):
                     campos_analise_para_atualizar = []
                     valores_analise_para_atualizar = []
                     
-                    # 🎯 ADICIONAR LÓGICA DE FINALIZAÇÃO NA ANÁLISE
+                    # 8. ATUALIZAR ANALISE (VERSÃO MÍNIMA)
                     if acao_finalizar:
-                        campos_analise_para_atualizar.append("situacao_analise = %s")
-                        valores_analise_para_atualizar.append("FINALIZADA")
-                        
-                        if fim_analise:
-                            campos_analise_para_atualizar.append("fim_analise = %s")
-                            valores_analise_para_atualizar.append(fim_analise)
+                        # ✅ SÓ ISSO - NADA MAIS
+                        cur.execute("UPDATE analise SET situacao_analise = 'FINALIZADA' WHERE processo_protocolo = %s", (protocolo,))
+                        print(f"🎯 SITUAÇÃO ATUALIZADA: {protocolo} → FINALIZADA")
+                    else:
+                        # ✅ Só atualiza o responsável se não for finalizar
+                        cur.execute("UPDATE analise SET responsavel_analise = %s WHERE processo_protocolo = %s", (cpf_tecnico, protocolo))
                     
                     # Campos da análise
                     situacao_analise = formulario.get("situacao_analise", "NÃO FINALIZADA")
