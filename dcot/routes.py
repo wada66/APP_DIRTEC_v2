@@ -163,7 +163,7 @@ def captar_processo(protocolo):
         flash(f"❌ Erro ao captar processo: {str(e)}", "error")
         print(f"❌ Erro na captura: {str(e)}")
 
-    return redirect(url_for(f"{setor.lower()}.ambiente"))
+    return redirect(url_for("dcot.ambiente"))
 
 
 @bp.route('/preencher_tecnico/<string:protocolo>', methods=['GET', 'POST'])
@@ -586,6 +586,9 @@ def preencher_tecnico(protocolo):
                                 print(f"✅ Nova relação proprietário-imóvel CRIADA (matrícula: {matricula_imovel})")
                 else:
                     print("⏭️ Proprietário não atualizado - nenhum dado fornecido")
+                
+                conn.commit()
+                print("✅ Atualização concluída com sucesso!")
                         
                 # 🎯 BLOCO DE FINALIZAÇÃO - CORRETAMENTE IDENTADO
                 if acao_finalizar:
@@ -655,9 +658,6 @@ def preencher_tecnico(protocolo):
                         valores_analise_para_atualizar.append(protocolo)
                         cur.execute(f"UPDATE analise SET {campos_sql_analise} WHERE processo_protocolo = %s", 
                                 valores_analise_para_atualizar)
-
-                conn.commit()
-                print("✅ Atualização concluída com sucesso!")
 
                 # 🎯 MENSAGEM DE SUCESSO CONDICIONAL
                 if acao_finalizar:
@@ -898,9 +898,3 @@ def encaminhar_processo(protocolo, setor_destino):
         print(f"❌ Erro: {str(e)}")
 
     return redirect(url_for("dcot.ambiente"))
-
-
-
-
-
-

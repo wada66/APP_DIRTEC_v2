@@ -27,48 +27,48 @@ LEGENDAS_AMIGAVEIS = {
     "zona_utp" : "Zona UTP",
     "cnpj_requerente" : "CNPJ Requerente",
     "cpf_requerente" : "CPF Requerente",
-    "nome_ou_loteamento_do_condominio_a_ser_aprovado" : "Condomínio a ser aprovado"
-        
-    # coloque aqui outras legendas personalizadas que quiser
+    "nome_ou_loteamento_do_condominio_a_ser_aprovado" : "Condomínio a ser aprovado",
+    "area" : "Área",
+    "interesse_social" : "Interesse Social",
+    "perimetro_urbano" : "Perímetro Urbano",
+    "tipo_manancial" : "Tipo de Manancial",
+    "curva_inundacao" : "Curva de Inundação",
+    "faixa_servidao" : "Faixa de Servidão",
+    "sistema_viario" : "Sistema Viário",  
 }
 
 LEGENDAS_AMIGAVEIS_2 = {
-    "protocolo": "Protocolo",
+    "numero_pasta": "Número Pasta",
     "observacoes": "Observações",
-    "pasta_numero": "Número da Pasta",
     "solicitacao_requerente": "Solicitação do Requerente",
     "resposta_departamento": "Resposta do Departamento",
+    "responsavel_analise_cpf" : "Responsável pela Análise",
+    "municipio" : "Município",
     "tramitacao": "Tramitação",
-    "tipologia": "Tipologia",
-    "municipio": "Município",
-    "situacao_localizacao": "Situação da Localização",
-    "responsavel_localizacao": "Responsável pela Localização",
-    "responsavel_analise": "Responsável pela Análise",
-    "inicio_localizacao": "Início da Localização",
-    "fim_localizacao": "Fim da Localização",
-    "nome_ou_loteamento_do_condominio_a_ser_aprovado": "Condomínio a Ser Aprovado",
-    "interesse_social": "Interesse Social",
-    "nome_requerente": "Nome do Requerente",
-    "tipo_requerente": "Tipo de Requerente",
-    "cpf_cnpj_requerente": "CPF/CNPJ do Requerente",
-    "nome_proprietario": "Nome do Proprietário",
-    "cpf_cnpj_proprietario": "CPF/CNPJ do Proprietário",
-    "imovel_matricula": "Matrícula do Imóvel",
-    "area": "Área",
-    "localidade_imovel": "Localidade do Imóvel",
-    "latitude": "Latitude",
-    "longitude": "Longitude",
-    "prioridade": "Prioridade",
-    "complexidade": "Complexidade",
-    "zona_apa": "Zona APA",
-    "zona_utp": "Zona UTP",
-    "curva_inundacao": "Curva de Inundação",
-    "faixa_servidao": "Faixa de Servidão",
-    "sistema_viario": "Sistema Viário",
-    "situacao_analise": "Situação da Análise",
-    "perimetro_urbano": "Perímetro Urbano",
-    "zona_urbana": "Zona Urbana",
-    "macrozona_municipal": "Macrozona Municipal"
+    "zona_urbana" : "Zona Urbana",
+    "macrozona_municipal" : "Macrozona Municipal",
+    "situacao_localizacao" : "Situação Localização",
+    "responsavel_localizacao_cpf" : "Responsável Localização",
+    "nome_requerente" : "Nome do Requerente",
+    "tipo_de_requerente" : "Tipo de Requerente",
+    "cpf_cnpj_requerente" : "CPF ou CNPJ do Requerente",
+    "nome_proprietario" : "Nome do Proprietário",
+    "cpf_cnpj_proprietario" : "CPF ou CNPJ do Propietário",
+    "matricula_imovel" : "Matrícula do Imóvel",
+    "apa" : "APA",
+    "zona_apa" : "Zona APA",
+    "utp" : "UTP",
+    "zona_utp" : "Zona UTP",
+    "cnpj_requerente" : "CNPJ Requerente",
+    "cpf_requerente" : "CPF Requerente",
+    "nome_ou_loteamento_do_condominio_a_ser_aprovado" : "Condomínio a ser aprovado",
+    "area" : "Área",
+    "interesse_social" : "Interesse Social",
+    "perimetro_urbano" : "Perímetro Urbano",
+    "tipo_manancial" : "Tipo de Manancial",
+    "curva_inundacao" : "Curva de Inundação",
+    "faixa_servidao" : "Faixa de Servidão",
+    "sistema_viario" : "Sistema Viário",  
 }
 
 def gerar_pdf(formulario, caminho):
@@ -222,6 +222,7 @@ def gerar_pdf_segundo_preenchimento(protocolo, caminho):
                     cur.execute("SELECT nome_tecnico FROM tecnico WHERE cpf_tecnico = %s", (valor,))
                     result = cur.fetchone()
                     dados_completos[campo] = result[0] if result else "Desconhecido"
+                    
 
     # Função para adicionar linha no PDF (igual à original)
     def add_row(chave, valor):
