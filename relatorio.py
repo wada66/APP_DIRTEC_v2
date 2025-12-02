@@ -34,7 +34,13 @@ LEGENDAS_AMIGAVEIS = {
     "tipo_manancial" : "Tipo de Manancial",
     "curva_inundacao" : "Curva de Inundação",
     "faixa_servidao" : "Faixa de Servidão",
-    "sistema_viario" : "Sistema Viário",  
+    "sistema_viario" : "Sistema Viário",
+    "pasta_numero" : "Número da Pasta",
+    "imovel_matricula" : "Matrícula do Imóvel",
+    "tipo_requerente" : "Tipo de Requerente",
+    "situacao_analise" : "Situação Análise",
+    "responsavel_localizacao" : "Responsável Localização",
+    "localidade_imovel" : "Localidade do Imóvel"  
 }
 
 LEGENDAS_AMIGAVEIS_2 = {
@@ -69,7 +75,14 @@ LEGENDAS_AMIGAVEIS_2 = {
     "curva_inundacao" : "Curva de Inundação",
     "faixa_servidao" : "Faixa de Servidão",
     "sistema_viario" : "Sistema Viário",  
-}
+    "pasta_numero" : "Número da Pasta",
+    "imovel_matricula" : "Matrícula do Imóvel",
+    "tipo_requerente" : "Tipo de Requerente",
+    "situacao_analise" : "Situação Análise",
+    "responsavel_localizacao" : "Responsável Localização",
+    "responsavel_analise" : "Responsável Análise",
+    "localidade_imovel" : "Localidade do Imóvel"
+    }
 
 def gerar_pdf(formulario, caminho):
     pdf = FPDF()
@@ -175,6 +188,8 @@ def gerar_pdf_segundo_preenchimento(protocolo, caminho):
                     a.complexidade,
                     za.nome_zona_apa as zona_apa,
                     zu.nome_zona_utp as zona_utp,
+                    za.apa as apa,                    -- Nome da APA
+                    zu.utp as utp,                    -- Nome da UTP
                     i.curva_inundacao,
                     i.faixa_servidao, 
                     i.classificacao_viaria AS sistema_viario,
