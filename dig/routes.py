@@ -613,57 +613,81 @@ def preencher_tecnico(protocolo):
                     except Exception as e_pdf:
                         print(f"❌ Erro ao gerar PDF: {e_pdf}")
             
-                # 8. ATUALIZAR ANALISE (apenas campos modificados)
+                # 🎯 8. ATUALIZAR ANALISE (VERSÃO CORRIGIDA)
                 with conn.cursor() as cur:
                     # Buscar análise atual
                     cur.execute("SELECT * FROM analise WHERE processo_protocolo = %s", (protocolo,))
                     analise_atual = cur.fetchone()
                     analise_dict = dict(zip([desc[0] for desc in cur.description], analise_atual)) if analise_atual else {}
                     
+                    print(f"\n📊 ESTADO DA ANÁLISE:")
+                    print(f"  prioridade no banco: '{analise_dict.get('prioridade')}'")
+                    print(f"  complexidade no banco: '{analise_dict.get('complexidade')}'")
+                    
                     campos_analise_para_atualizar = []
                     valores_analise_para_atualizar = []
                     
-                    # 8. ATUALIZAR ANALISE (VERSÃO MÍNIMA)
-                    if acao_finalizar:
-                        # ✅ SÓ ISSO - NADA MAIS
-                        cur.execute("UPDATE analise SET situacao_analise = 'FINALIZADA' WHERE processo_protocolo = %s", (protocolo,))
-                        print(f"🎯 SITUAÇÃO ATUALIZADA: {protocolo} → FINALIZADA")
-                    else:
-                        # ✅ Só atualiza o responsável se não for finalizar
-                        cur.execute("UPDATE analise SET responsavel_analise = %s WHERE processo_protocolo = %s", (cpf_tecnico, protocolo))
-                    
-                    # Campos da análise
+                    # 🎯 CONVERTER VALORES VAZIOS PARA NULL
                     situacao_analise = formulario.get("situacao_analise", "NÃO FINALIZADA")
                     prioridade = formulario.get("prioridade")
                     complexidade = formulario.get("complexidade")
                     
+                    if prioridade == '':
+                        prioridade = None
+                        print("🔧 Campo prioridade convertido de '' para NULL")
+                    
+                    if complexidade == '':
+                        complexidade = None
+                        print("🔧 Campo complexidade convertido de '' para NULL")
+                    
+                    # 🎯 DEBUG DETALHADO
+                    print(f"\n🔍 COMPARAÇÃO ANÁLISE:")
+                    print(f"  prioridade: form='{prioridade}', banco='{analise_dict.get('prioridade')}'")
+                    print(f"  complexidade: form='{complexidade}', banco='{analise_dict.get('complexidade')}'")
+                    
+                    # 🎯 ATUALIZAÇÃO DE CAMPOS (REMOVER VERIFICAÇÃO "and prioridade")
                     if situacao_analise != analise_dict.get("situacao_analise"):
                         campos_analise_para_atualizar.append("situacao_analise = %s")
                         valores_analise_para_atualizar.append(situacao_analise)
+                        print(f"✅ situacao_analise será atualizada")
                     
-                    if prioridade and prioridade != analise_dict.get("prioridade"):
+                    # 🚨 CORREÇÃO CRÍTICA: REMOVER "prioridade and" / "complexidade and"
+                    if prioridade != analise_dict.get("prioridade"):  # ✅ APENAS ISSO
                         campos_analise_para_atualizar.append("prioridade = %s")
                         valores_analise_para_atualizar.append(prioridade)
+                        print(f"✅ prioridade será atualizada: '{analise_dict.get('prioridade')}' -> '{prioridade}'")
                     
-                    if complexidade and complexidade != analise_dict.get("complexidade"):
+                    if complexidade != analise_dict.get("complexidade"):  # ✅ APENAS ISSO
                         campos_analise_para_atualizar.append("complexidade = %s")
                         valores_analise_para_atualizar.append(complexidade)
+                        print(f"✅ complexidade será atualizada: '{analise_dict.get('complexidade')}' -> '{complexidade}'")
                     
-                    # Sempre atualiza o responsável
-                    campos_analise_para_atualizar.append("responsavel_analise = %s")
-                    valores_analise_para_atualizar.append(cpf_tecnico)
+                    # 🎯 RESPONSÁVEL (sempre atualiza)
+                    if not acao_finalizar:  # Só atualiza responsável se não for finalizar
+                        campos_analise_para_atualizar.append("responsavel_analise = %s")
+                        valores_analise_para_atualizar.append(cpf_tecnico)
+                        print(f"✅ responsavel_analise será atualizado: {cpf_tecnico}")
                     
+                    # 🎯 SITUAÇÃO FINAL (se finalizar)
+                    if acao_finalizar:
+                        campos_analise_para_atualizar.append("situacao_analise = %s")
+                        valores_analise_para_atualizar.append("FINALIZADA")
+                        print(f"🎯 MODO FINALIZAR: situacao_analise = 'FINALIZADA'")
+                    
+                    # 🎯 EXECUTAR UPDATE SE HOUVER CAMPOS
                     if campos_analise_para_atualizar:
                         campos_sql_analise = ", ".join(campos_analise_para_atualizar)
                         valores_analise_para_atualizar.append(protocolo)
+                        
+                        print(f"\n🎯 SQL ANALISE:")
+                        print(f"  UPDATE analise SET {campos_sql_analise} WHERE processo_protocolo = %s")
+                        print(f"  Valores: {valores_analise_para_atualizar}")
+                        
                         cur.execute(f"UPDATE analise SET {campos_sql_analise} WHERE processo_protocolo = %s", 
                                 valores_analise_para_atualizar)
-
-                # 🎯 MENSAGEM DE SUCESSO CONDICIONAL
-                if acao_finalizar:
-                    flash(f"✅ Processo {protocolo} finalizado com sucesso! PDF gerado.", "success")
-                else:
-                    flash(f"✅ Processo {protocolo} salvo com sucesso!", "success")
+                        print(f"✅ UPDATE da análise executado: {len(campos_analise_para_atualizar)} campos")
+                    else:
+                        print("ℹ️ Nenhum campo da análise para atualizar")
 
                 return redirect(url_for("dig.ambiente"))
 
