@@ -40,7 +40,7 @@ LEGENDAS_AMIGAVEIS = {
     "tipo_requerente" : "Tipo de Requerente",
     "situacao_analise" : "Situação Análise",
     "responsavel_localizacao" : "Responsável Localização",
-    "localidade_imovel" : "Localidade do Imóvel"  
+    "localidade_imovel" : "Localidade do Imóvel", 
 }
 
 LEGENDAS_AMIGAVEIS_2 = {
@@ -81,7 +81,7 @@ LEGENDAS_AMIGAVEIS_2 = {
     "situacao_analise" : "Situação Análise",
     "responsavel_localizacao" : "Responsável Localização",
     "responsavel_analise" : "Responsável Análise",
-    "localidade_imovel" : "Localidade do Imóvel"
+    "localidade_imovel" : "Localidade do Imóvel",
     }
 
 def gerar_pdf(formulario, caminho):

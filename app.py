@@ -158,8 +158,8 @@ def inserir():
     acao_encaminhar = formulario.get("encaminhar")
     setor_destino = formulario.get("setor_destino")
 
-    interesse_social = formulario.get("interesse_social") == "on"
-    lei_inclui_perimetro_urbano = formulario.get("perimetro_urbano") == "on"
+    interesse_social = formulario.get("interesse_social") == "SIM"
+    lei_inclui_perimetro_urbano = formulario.get("perimetro_urbano") == "SIM"
 
     inicio_localizacao = formulario.get("inicio_localizacao") or None
     fim_localizacao = formulario.get("fim_localizacao") or None

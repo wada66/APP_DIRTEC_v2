@@ -199,7 +199,7 @@ def preencher_tecnico(protocolo):
         def to_bool(val):
             if val == 'false' or val == 'False' or val == '0':
                 return False
-            return val == 'on' or val == 'true' or val == '1' or val == 'True'
+            return val == 'on' or val == 'true' or val == '1' or val == 'True' or val == 'SIM'
 
         # Normaliza checkbox para booleano real - VERSÃO CORRIGIDA
         checkbox_fields = ["interesse_social", "perimetro_urbano",
@@ -389,7 +389,7 @@ def preencher_tecnico(protocolo):
                             
                             # DEPOIS faz a verificação normal
                             valor_atual = imovel_dict.get(campo_imovel)
-                            if valor_formulario is not None and valor_formulario != valor_atual:
+                            if valor_formulario != valor_atual:
                                 campos_imovel_para_atualizar.append(f"{campo_imovel} = %s")
                                 valores_imovel_para_atualizar.append(valor_formulario)
                         

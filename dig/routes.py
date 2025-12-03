@@ -175,8 +175,7 @@ def preencher_tecnico(protocolo):
 
     if request.method == 'POST':
         formulario = request.form.to_dict(flat=True)
-
-        # Detectar Finalizar e variáveis de finalização
+                
         acao_finalizar = formulario.get("finalizar")
         from datetime import datetime
         fim_analise = datetime.now() if acao_finalizar else None
@@ -199,7 +198,7 @@ def preencher_tecnico(protocolo):
         def to_bool(val):
             if val == 'false' or val == 'False' or val == '0':
                 return False
-            return val == 'on' or val == 'true' or val == '1' or val == 'True'
+            return val == 'on' or val == 'true' or val == '1' or val == 'True' or val == 'SIM'
 
         # Normaliza checkbox para booleano real - VERSÃO CORRIGIDA
         checkbox_fields = ["interesse_social", "perimetro_urbano",
@@ -220,6 +219,7 @@ def preencher_tecnico(protocolo):
                 with conn.cursor() as cur:
                     # Buscar dados atuais do processo
                     cur.execute("SELECT * FROM processo WHERE protocolo = %s", (protocolo,))
+                    
                     processo_atual = cur.fetchone()
                     colunas_processo = [desc[0] for desc in cur.description]
                     processo_dict = dict(zip(colunas_processo, processo_atual)) if processo_atual else {}
@@ -389,7 +389,7 @@ def preencher_tecnico(protocolo):
                             
                             # DEPOIS faz a verificação normal
                             valor_atual = imovel_dict.get(campo_imovel)
-                            if valor_formulario is not None and valor_formulario != valor_atual:
+                            if valor_formulario != valor_atual:
                                 campos_imovel_para_atualizar.append(f"{campo_imovel} = %s")
                                 valores_imovel_para_atualizar.append(valor_formulario)
                         
