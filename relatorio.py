@@ -136,7 +136,10 @@ def gerar_pdf(formulario, caminho):
                 valor = "SIM"
             else:
                 valor = "NÃO"
-        if valor and str(valor).strip().lower() != "none":
+        
+        if valor and str(valor).strip().lower() != "none":            
+            if chave == 'finalizar':
+                continue
             add_row(chave, valor)
             pdf.ln(2)
 
