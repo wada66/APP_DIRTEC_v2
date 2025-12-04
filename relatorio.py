@@ -42,6 +42,7 @@ LEGENDAS_AMIGAVEIS = {
     "responsavel_localizacao" : "Responsável pela Localização",
     "localidade_imovel" : "Localidade do Imóvel", 
     "inicio_localizacao" : "Início da Localização",
+    "responsavel_analise" : "Responsável pela Análise",
     "fim_localizacao" : "Fim da Localização"
 }
 
@@ -129,6 +130,12 @@ def gerar_pdf(formulario, caminho):
         pdf.cell(0, 10, str(valor), border=0, ln=True, align='L')
 
     for chave, valor in formulario.items():
+        
+        if chave in ['interesse_social', 'perimetro_urbano']:
+            if valor is True or str(valor).lower() in ['true', '1', 'sim', 'on']:
+                valor = "SIM"
+            else:
+                valor = "NÃO"
         if valor and str(valor).strip().lower() != "none":
             add_row(chave, valor)
             pdf.ln(2)
@@ -253,6 +260,13 @@ def gerar_pdf_segundo_preenchimento(protocolo, caminho):
 
     # Gerar PDF com dados completos
     for chave, valor in dados_completos.items():
+        
+        if chave in ['interesse_social', 'perimetro_urbano']:
+            if valor is True or str(valor).lower() in ['true', '1', 'sim', 'on']:
+                valor = "SIM"
+            else:
+                valor = "NÃO"
+        
         if valor and str(valor).strip().lower() != "none":
             add_row(chave, valor)
             pdf.ln(2)
