@@ -199,7 +199,7 @@ def preencher_tecnico(protocolo):
         def to_bool(val):
             if val == 'false' or val == 'False' or val == '0':
                 return False
-            return val == 'on' or val == 'true' or val == '1' or val == 'True' or val == 'SIM'
+            return val == 'on' or val == 'true' or val == '1' or val == 'True'
 
         # Normaliza checkbox para booleano real - VERSÃO CORRIGIDA
         checkbox_fields = ["interesse_social", "perimetro_urbano",
@@ -389,7 +389,7 @@ def preencher_tecnico(protocolo):
                             
                             # DEPOIS faz a verificação normal
                             valor_atual = imovel_dict.get(campo_imovel)
-                            if valor_formulario != valor_atual:
+                            if valor_formulario is not None and valor_formulario != valor_atual:
                                 campos_imovel_para_atualizar.append(f"{campo_imovel} = %s")
                                 valores_imovel_para_atualizar.append(valor_formulario)
                         
@@ -620,74 +620,50 @@ def preencher_tecnico(protocolo):
                     analise_atual = cur.fetchone()
                     analise_dict = dict(zip([desc[0] for desc in cur.description], analise_atual)) if analise_atual else {}
                     
-                    print(f"\n📊 ESTADO DA ANÁLISE:")
-                    print(f"  prioridade no banco: '{analise_dict.get('prioridade')}'")
-                    print(f"  complexidade no banco: '{analise_dict.get('complexidade')}'")
-                    
                     campos_analise_para_atualizar = []
                     valores_analise_para_atualizar = []
                     
-                    # 🎯 CONVERTER VALORES VAZIOS PARA NULL
+                    # 8. ATUALIZAR ANALISE (VERSÃO MÍNIMA)
+                    if acao_finalizar:
+                        # ✅ SÓ ISSO - NADA MAIS
+                        cur.execute("UPDATE analise SET situacao_analise = 'FINALIZADA' WHERE processo_protocolo = %s", (protocolo,))
+                        print(f"🎯 SITUAÇÃO ATUALIZADA: {protocolo} → FINALIZADA")
+                    else:
+                        # ✅ Só atualiza o responsável se não for finalizar
+                        cur.execute("UPDATE analise SET responsavel_analise = %s WHERE processo_protocolo = %s", (cpf_tecnico, protocolo))
+                    
+                    # Campos da análise
                     situacao_analise = formulario.get("situacao_analise", "NÃO FINALIZADA")
                     prioridade = formulario.get("prioridade")
                     complexidade = formulario.get("complexidade")
                     
-                    if prioridade == '':
-                        prioridade = None
-                        print("🔧 Campo prioridade convertido de '' para NULL")
-                    
-                    if complexidade == '':
-                        complexidade = None
-                        print("🔧 Campo complexidade convertido de '' para NULL")
-                    
-                    # 🎯 DEBUG DETALHADO
-                    print(f"\n🔍 COMPARAÇÃO ANÁLISE:")
-                    print(f"  prioridade: form='{prioridade}', banco='{analise_dict.get('prioridade')}'")
-                    print(f"  complexidade: form='{complexidade}', banco='{analise_dict.get('complexidade')}'")
-                    
-                    # 🎯 ATUALIZAÇÃO DE CAMPOS (REMOVER VERIFICAÇÃO "and prioridade")
                     if situacao_analise != analise_dict.get("situacao_analise"):
                         campos_analise_para_atualizar.append("situacao_analise = %s")
                         valores_analise_para_atualizar.append(situacao_analise)
-                        print(f"✅ situacao_analise será atualizada")
                     
-                    # 🚨 CORREÇÃO CRÍTICA: REMOVER "prioridade and" / "complexidade and"
-                    if prioridade != analise_dict.get("prioridade"):  # ✅ APENAS ISSO
+                    if prioridade and prioridade != analise_dict.get("prioridade"):
                         campos_analise_para_atualizar.append("prioridade = %s")
                         valores_analise_para_atualizar.append(prioridade)
-                        print(f"✅ prioridade será atualizada: '{analise_dict.get('prioridade')}' -> '{prioridade}'")
                     
-                    if complexidade != analise_dict.get("complexidade"):  # ✅ APENAS ISSO
+                    if complexidade and complexidade != analise_dict.get("complexidade"):
                         campos_analise_para_atualizar.append("complexidade = %s")
                         valores_analise_para_atualizar.append(complexidade)
-                        print(f"✅ complexidade será atualizada: '{analise_dict.get('complexidade')}' -> '{complexidade}'")
                     
-                    # 🎯 RESPONSÁVEL (sempre atualiza)
-                    if not acao_finalizar:  # Só atualiza responsável se não for finalizar
-                        campos_analise_para_atualizar.append("responsavel_analise = %s")
-                        valores_analise_para_atualizar.append(cpf_tecnico)
-                        print(f"✅ responsavel_analise será atualizado: {cpf_tecnico}")
+                    # Sempre atualiza o responsável
+                    campos_analise_para_atualizar.append("responsavel_analise = %s")
+                    valores_analise_para_atualizar.append(cpf_tecnico)
                     
-                    # 🎯 SITUAÇÃO FINAL (se finalizar)
-                    if acao_finalizar:
-                        campos_analise_para_atualizar.append("situacao_analise = %s")
-                        valores_analise_para_atualizar.append("FINALIZADA")
-                        print(f"🎯 MODO FINALIZAR: situacao_analise = 'FINALIZADA'")
-                    
-                    # 🎯 EXECUTAR UPDATE SE HOUVER CAMPOS
                     if campos_analise_para_atualizar:
                         campos_sql_analise = ", ".join(campos_analise_para_atualizar)
                         valores_analise_para_atualizar.append(protocolo)
-                        
-                        print(f"\n🎯 SQL ANALISE:")
-                        print(f"  UPDATE analise SET {campos_sql_analise} WHERE processo_protocolo = %s")
-                        print(f"  Valores: {valores_analise_para_atualizar}")
-                        
                         cur.execute(f"UPDATE analise SET {campos_sql_analise} WHERE processo_protocolo = %s", 
                                 valores_analise_para_atualizar)
-                        print(f"✅ UPDATE da análise executado: {len(campos_analise_para_atualizar)} campos")
-                    else:
-                        print("ℹ️ Nenhum campo da análise para atualizar")
+
+                # 🎯 MENSAGEM DE SUCESSO CONDICIONAL
+                if acao_finalizar:
+                    flash(f"✅ Processo {protocolo} finalizado com sucesso! PDF gerado.", "success")
+                else:
+                    flash(f"✅ Processo {protocolo} salvo com sucesso!", "success")
 
                 return redirect(url_for("diretor_tecnico.ambiente"))
 

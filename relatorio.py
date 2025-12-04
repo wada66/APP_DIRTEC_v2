@@ -38,9 +38,11 @@ LEGENDAS_AMIGAVEIS = {
     "pasta_numero" : "Número da Pasta",
     "imovel_matricula" : "Matrícula do Imóvel",
     "tipo_requerente" : "Tipo de Requerente",
-    "situacao_analise" : "Situação Análise",
-    "responsavel_localizacao" : "Responsável Localização",
+    "situacao_analise" : "Situação da Análise",
+    "responsavel_localizacao" : "Responsável pela Localização",
     "localidade_imovel" : "Localidade do Imóvel", 
+    "inicio_localizacao" : "Início da Localização",
+    "fim_localizacao" : "Fim da Localização"
 }
 
 LEGENDAS_AMIGAVEIS_2 = {
@@ -78,10 +80,12 @@ LEGENDAS_AMIGAVEIS_2 = {
     "pasta_numero" : "Número da Pasta",
     "imovel_matricula" : "Matrícula do Imóvel",
     "tipo_requerente" : "Tipo de Requerente",
-    "situacao_analise" : "Situação Análise",
-    "responsavel_localizacao" : "Responsável Localização",
-    "responsavel_analise" : "Responsável Análise",
+    "situacao_analise" : "Situação da Análise",
+    "responsavel_localizacao" : "Responsável pela Localização",
+    "responsavel_analise" : "Responsável pela Análise",
     "localidade_imovel" : "Localidade do Imóvel",
+    "inicio_localizacao" : "Início da Localização",
+    "fim_localizacao" : "Fim da Localização"
     }
 
 def gerar_pdf(formulario, caminho):
