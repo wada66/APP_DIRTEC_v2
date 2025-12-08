@@ -949,13 +949,41 @@ function carregarZonasParaMunicipio(municipio) {
         .catch(error => console.error('Erro ao carregar macrozonas:', error));
 }
 
-// Event listener para município
+// 🎯 EVENT LISTENER PARA MUNICÍPIO - VERSÃO CORRIGIDA
 document.addEventListener('DOMContentLoaded', function() {
     const municipioSelect = document.getElementById('municipio');
     
     if (municipioSelect) {
         municipioSelect.addEventListener('change', function() {
-            carregarZonasParaMunicipio(this.value);
+            const novoMunicipio = this.value;
+            console.log(`🏙️ Município alterado para: ${novoMunicipio}`);
+            
+            // 🎯 1. RESETA ZONAS URBANAS
+            const zonaUrbanaSelect = document.getElementById('zona_urbana');
+            if (zonaUrbanaSelect) {
+                zonaUrbanaSelect.value = ''; // Limpa seleção
+                zonaUrbanaSelect.disabled = false; // Descongela
+                zonaUrbanaSelect.classList.remove('campo-congelado');
+                
+                // Remove botão "Editar" se existir
+                const btnZona = document.getElementById('btn-editar-zona_urbana');
+                if (btnZona) btnZona.remove();
+            }
+            
+            // 🎯 2. RESETA MACROZONAS
+            const macrozonaSelect = document.getElementById('macrozona_municipal');
+            if (macrozonaSelect) {
+                macrozonaSelect.value = ''; // Limpa seleção
+                macrozonaSelect.disabled = false; // Descongela
+                macrozonaSelect.classList.remove('campo-congelado');
+                
+                // Remove botão "Editar" se existir
+                const btnMacro = document.getElementById('btn-editar-macrozona_municipal');
+                if (btnMacro) btnMacro.remove();
+            }
+            
+            // 🎯 3. AGORA busca novas zonas para o município
+            carregarZonasParaMunicipio(novoMunicipio);
         });
 
         // Carrega zonas automaticamente se já houver município
@@ -966,6 +994,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
 // 🆕 CARREGAR ZONAS DINAMICAMENTE PARA APA/UTP
 function carregarZonasAPA(apaSelecionada) {
     if (!apaSelecionada) {
