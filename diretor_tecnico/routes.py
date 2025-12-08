@@ -1,7 +1,21 @@
+from datetime import datetime
 import os
 from flask import flash, render_template, session, redirect, url_for, request
 from . import bp
 from db import get_db_connection
+import numpy as np  # ← ADICIONE ESTE IMPORT!
+
+# 🟢 COPIE A FUNÇÃO QUE VOCÊ JÁ TEM:
+def calcular_dias_uteis(inicio_str, fim_str):
+    if not inicio_str or not fim_str:
+        return None
+    try:
+        inicio = datetime.strptime(inicio_str, "%Y-%m-%d").date()
+        fim = datetime.strptime(fim_str, "%Y-%m-%d").date()
+        return int(np.busday_count(inicio, fim))
+    except Exception as e:
+        print("Erro ao calcular dias úteis:", e)
+        return None
 
 
 @bp.route('/ambiente')
@@ -623,14 +637,43 @@ def preencher_tecnico(protocolo):
                     campos_analise_para_atualizar = []
                     valores_analise_para_atualizar = []
                     
-                    # 8. ATUALIZAR ANALISE (VERSÃO MÍNIMA)
                     if acao_finalizar:
-                        # ✅ SÓ ISSO - NADA MAIS
-                        cur.execute("UPDATE analise SET situacao_analise = 'FINALIZADA' WHERE processo_protocolo = %s", (protocolo,))
-                        print(f"🎯 SITUAÇÃO ATUALIZADA: {protocolo} → FINALIZADA")
+                        # 🎯 PRIMEIRO: Buscar o inicio_analise do banco
+                        cur.execute("SELECT inicio_analise FROM analise WHERE processo_protocolo = %s", (protocolo,))
+                        resultado = cur.fetchone()
+                        inicio_analise = resultado[0] if resultado else None
+                        
+                        if inicio_analise:
+                            fim_analise = datetime.now()
+                            dias_uteis_analise = calcular_dias_uteis(
+                                inicio_analise.strftime("%Y-%m-%d"),
+                                fim_analise.strftime("%Y-%m-%d")
+                            )
+                            
+                            # 🎯 ATUALIZA com fim_analise e dias_uteis_analise
+                            cur.execute("""
+                                UPDATE analise 
+                                SET situacao_analise = 'FINALIZADA',
+                                    fim_analise = %s,
+                                    dias_uteis_analise = %s,
+                                    responsavel_analise = %s,
+                                    ultima_movimentacao = CURRENT_DATE
+                                WHERE processo_protocolo = %s
+                            """, (fim_analise, dias_uteis_analise, cpf_tecnico, protocolo))
+                            
+                            print(f"🎯 PROCESSO FINALIZADO: {protocolo}")
+                            print(f"🎯 FIM_ANALISE: {fim_analise}")
+                            print(f"🎯 DIAS ÚTEIS: {dias_uteis_analise}")
+                        else:
+                            # Fallback caso não encontre inicio_analise (não deve acontecer)
+                            cur.execute("UPDATE analise SET situacao_analise = 'FINALIZADA', responsavel_analise = %s WHERE processo_protocolo = %s", 
+                                    (cpf_tecnico, protocolo))
+                            print(f"⚠️ Finalizado sem inicio_analise para {protocolo}")
+                    
                     else:
                         # ✅ Só atualiza o responsável se não for finalizar
-                        cur.execute("UPDATE analise SET responsavel_analise = %s WHERE processo_protocolo = %s", (cpf_tecnico, protocolo))
+                        cur.execute("UPDATE analise SET responsavel_analise = %s WHERE processo_protocolo = %s", 
+                                (cpf_tecnico, protocolo))
                     
                     # Campos da análise
                     situacao_analise = formulario.get("situacao_analise", "NÃO FINALIZADA")
