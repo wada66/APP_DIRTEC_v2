@@ -308,6 +308,27 @@ def preencher_tecnico(protocolo):
                             campos_para_atualizar.append(f"{campo} = %s")
                             valores_para_atualizar.append(valor_final)
 
+                        # Verificar se inicio_localizacao ou fim_localizacao estão sendo atualizados
+                    if ('inicio_localizacao' in [c.split()[0] for c in campos_para_atualizar] or 
+                        'fim_localizacao' in [c.split()[0] for c in campos_para_atualizar]):
+                        
+                        print(f"🎯 Datas de localização alteradas - recalculando dias úteis...")
+                        
+                        # Obter valores finais
+                        inicio_final = formulario.get('inicio_localizacao') or processo_dict.get('inicio_localizacao')
+                        fim_final = formulario.get('fim_localizacao') or processo_dict.get('fim_localizacao')
+                        
+                        # Calcular dias úteis
+                        if inicio_final and fim_final:
+                            dias_uteis_localizacao = calcular_dias_uteis(str(inicio_final), str(fim_final))
+                        else:
+                            dias_uteis_localizacao = None
+                        
+                        # Adicionar ao UPDATE
+                        campos_para_atualizar.append("dias_uteis_localizacao = %s")
+                        valores_para_atualizar.append(dias_uteis_localizacao)
+                        print(f"🎯 Dias úteis localização: {dias_uteis_localizacao}")
+
                     # Executar UPDATE apenas se houver campos para atualizar
                     if campos_para_atualizar:
                         campos_sql = ", ".join(campos_para_atualizar)
