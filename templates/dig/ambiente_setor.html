@@ -205,20 +205,6 @@
     <td>
         <a href="{{ url_for('dig.visualizar_processo', protocolo=protocolo) }}" class="btn btn-secondary">Visualizar</a>
         <a href="{{ url_for('dig.captar_processo', protocolo=protocolo) }}" class="btn">Captar</a>
-
-        <div class="dropdown-encaminhar" style="display:inline-block; position: relative;">
-            <button type="button" class="btn btn-warning btn-encaminhar" onclick="toggleDropdown('{{ protocolo }}')">Encaminhar</button>
-            <form id="form-encaminhar-{{ protocolo }}" method="get" style="display:none; position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid #ddd; padding: 8px; border-radius: 5px; z-index: 10;">
-                <select name="setor_destino" required onchange="submitEncaminharForm('{{ protocolo }}')">
-                    <option value="" disabled selected>Selecione setor</option>
-                    {% for s in setores %}
-                        {% if s != setor %}
-                            <option value="{{ s }}">{{ s }}</option>
-                        {% endif %}
-                    {% endfor %}
-                </select>
-            </form>
-        </div>
     </td>
 </tr>
 {% endfor %}
