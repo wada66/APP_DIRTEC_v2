@@ -1089,8 +1089,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Lista de checkboxes que controlam cascatas
     const checkboxesCondicionais = [
-        { id: 'possui_apa', target: '#apa-container' },
-        { id: 'possui_utp', target: '#utp-container' },
+        { id: 'possui_apa', target: ['#apa-container', '#zona-apa-container'] },
+        { id: 'possui_utp', target: ['#utp-container', '#zona-utp-container'] },
         { id: 'possui_curva', target: '#curva-inundacao-container' },
         { id: 'possui_faixa', target: '#faixa-servidao-container' },
         { id: 'possui_diretriz', target: '#diretriz-viaria-container' }
