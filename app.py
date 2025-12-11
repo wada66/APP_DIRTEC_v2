@@ -235,16 +235,52 @@ def inserir():
                 # AGORA SEMPRE TEMOS MATRÍCULA VÁLIDA - podemos inserir o imóvel
                 print(f"🏠 Inserindo dados do imóvel com matrícula: {matricula_imovel}")
 
+                # 1. PRIMEIRO: Obter os valores do formulário
+                apa_nome = formulario.get("apa")  # ← Nome da APA selecionada
+                utp_nome = formulario.get("utp")  # ← Nome da UTP selecionada
                 zona_apa_nome = formulario.get("zona_apa")
                 zona_utp_nome = formulario.get("zona_utp")
 
-                cur.execute("SELECT id_zona_apa FROM zona_apa WHERE nome_zona_apa = %s", (zona_apa_nome,))
-                zona_apa_id = cur.fetchone()
-                zona_apa_id = zona_apa_id[0] if zona_apa_id else None
+                print(f"🔍 DEBUG inserir - APA: '{apa_nome}', Zona APA: '{zona_apa_nome}'")
+                print(f"🔍 DEBUG inserir - UTP: '{utp_nome}', Zona UTP: '{zona_utp_nome}'")
 
-                cur.execute("SELECT id_zona_utp FROM zona_utp WHERE nome_zona_utp = %s", (zona_utp_nome,))
-                zona_utp_id = cur.fetchone()
-                zona_utp_id = zona_utp_id[0] if zona_utp_id else None
+                # 2. BUSCAR ID DA ZONA APA (COM FILTRO POR APA)
+                zona_apa_id = None
+                if apa_nome and zona_apa_nome:
+                    # ✅ CORREÇÃO: Adicionar TRIM(apa) = %s na condição
+                    cur.execute("""
+                        SELECT id_zona_apa 
+                        FROM zona_apa 
+                        WHERE TRIM(apa) = %s AND nome_zona_apa = %s
+                    """, (apa_nome, zona_apa_nome))
+                    
+                    result = cur.fetchone()
+                    if result:
+                        zona_apa_id = result[0]
+                        print(f"✅ Zona APA encontrada: ID={zona_apa_id} (APA: '{apa_nome}', Zona: '{zona_apa_nome}')")
+                    else:
+                        print(f"❌ Zona APA não encontrada: APA='{apa_nome}', Zona='{zona_apa_nome}'")
+                else:
+                    print("ℹ️ Zona APA não buscada: faltam dados")
+
+                # 3. BUSCAR ID DA ZONA UTP (COM FILTRO POR UTP)
+                zona_utp_id = None
+                if utp_nome and zona_utp_nome:
+                    # ✅ CORREÇÃO: Adicionar TRIM(utp) = %s na condição
+                    cur.execute("""
+                        SELECT id_zona_utp 
+                        FROM zona_utp 
+                        WHERE TRIM(utp) = %s AND nome_zona_utp = %s
+                    """, (utp_nome, zona_utp_nome))
+                    
+                    result = cur.fetchone()
+                    if result:
+                        zona_utp_id = result[0]
+                        print(f"✅ Zona UTP encontrada: ID={zona_utp_id} (UTP: '{utp_nome}', Zona: '{zona_utp_nome}')")
+                    else:
+                        print(f"❌ Zona UTP não encontrada: UTP='{utp_nome}', Zona='{zona_utp_nome}'")
+                else:
+                    print("ℹ️ Zona UTP não buscada: faltam dados")
 
                 latitude = formulario.get("latitude")
                 longitude = formulario.get("longitude")
