@@ -367,29 +367,41 @@ def preencher_tecnico(protocolo):
                         zona_apa_id = None
                         zona_utp_id = None
 
-                        # 🎯 LÓGICA APA
+                        # 🎯 LÓGICA APA                       
                         if possui_apa:
                             zona_apa_texto = formulario.get("zona_apa")
-                            if zona_apa_texto and zona_apa_texto != '':
-                                cur.execute("SELECT id_zona_apa FROM zona_apa WHERE nome_zona_apa = %s", (zona_apa_texto,))
+                            apa_nome = formulario.get("apa")  # ← IMPORTANTE!
+                            
+                            if zona_apa_texto and zona_apa_texto != '' and apa_nome:
+                                cur.execute("""
+                                    SELECT id_zona_apa 
+                                    FROM zona_apa 
+                                    WHERE TRIM(apa) = %s AND nome_zona_apa = %s
+                                """, (apa_nome, zona_apa_texto))
+                                
                                 result = cur.fetchone()
                                 zona_apa_id = result[0] if result else None
-                                print(f"🎯 APA - Texto: '{zona_apa_texto}' → ID: {zona_apa_id}")
-                        else:
-                            print("🔧 APA desmarcada - zona_apa será NULL")
-                            zona_apa_id = None  # ✅ GARANTIR NULL SE NÃO POSSUI
+                                print(f"✅ Zona APA: '{zona_apa_texto}' na APA '{apa_nome}' → ID: {zona_apa_id}")
+                            else:
+                                zona_apa_id = None
 
                         # 🎯 LÓGICA UTP  
                         if possui_utp:
-                            zona_utp_texto = formulario.get("zona_utp")  
-                            if zona_utp_texto and zona_utp_texto != '':
-                                cur.execute("SELECT id_zona_utp FROM zona_utp WHERE nome_zona_utp = %s", (zona_utp_texto,))
+                            zona_utp_texto = formulario.get("zona_utp")
+                            utp_nome = formulario.get("utp")  # ← IMPORTANTE!
+                            
+                            if zona_utp_texto and zona_utp_texto != '' and utp_nome:
+                                cur.execute("""
+                                    SELECT id_zona_utp 
+                                    FROM zona_utp 
+                                    WHERE TRIM(utp) = %s AND nome_zona_utp = %s
+                                """, (utp_nome, zona_utp_texto))
+                                
                                 result = cur.fetchone()
                                 zona_utp_id = result[0] if result else None
-                                print(f"🎯 UTP - Texto: '{zona_utp_texto}' → ID: {zona_utp_id}")
-                        else:
-                            print("🔧 UTP desmarcada - zona_utp será NULL")
-                            zona_utp_id = None  # ✅ GARANTIR NULL SE NÃO POSSUI
+                                print(f"✅ Zona UTP: '{zona_utp_texto}' na UTP '{utp_nome}' → ID: {zona_utp_id}")
+                            else:
+                                zona_utp_id = None
 
                         latitude = formulario.get("latitude")
                         longitude = formulario.get("longitude")
