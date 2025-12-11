@@ -622,32 +622,6 @@ def preencher_tecnico(protocolo):
                                 print(f"✅ Nova relação proprietário-imóvel CRIADA (matrícula: {matricula_imovel})")
                 else:
                     print("⏭️ Proprietário não atualizado - nenhum dado fornecido")
-                
-                conn.commit()
-                print("✅ Atualização concluída com sucesso!")
-                        
-                # 🎯 BLOCO DE FINALIZAÇÃO - CORRETAMENTE IDENTADO
-                if acao_finalizar:
-                    print("🎯 MODO FINALIZAR ATIVADO - Gerando PDF...")
-                    
-                    nome_arquivo = f"{protocolo}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
-                    caminho_pdf = os.path.join("PDFS", nome_arquivo)
-                    os.makedirs("PDFS", exist_ok=True)
-
-                    try:
-                        from relatorio import gerar_pdf_segundo_preenchimento
-                        gerar_pdf_segundo_preenchimento(protocolo, caminho_pdf)
-                        print(f"📄 PDF gerado com sucesso: {caminho_pdf}")
-                        
-                        with conn.cursor() as cur:
-                            cur.execute("""
-                                INSERT INTO pdf_gerados (processo_protocolo, setor_nome, caminho_pdf, data_geracao)
-                                VALUES (%s, %s, %s, %s)
-                            """, (protocolo, session.get("setor"), caminho_pdf, datetime.now()))
-                            print(f"✅ Registro PDF inserido no banco para protocolo {protocolo}")
-                            
-                    except Exception as e_pdf:
-                        print(f"❌ Erro ao gerar PDF: {e_pdf}")
             
                 # 8. ATUALIZAR ANALISE (apenas campos modificados)
                 with conn.cursor() as cur:
@@ -723,6 +697,32 @@ def preencher_tecnico(protocolo):
                         valores_analise_para_atualizar.append(protocolo)
                         cur.execute(f"UPDATE analise SET {campos_sql_analise} WHERE processo_protocolo = %s", 
                                 valores_analise_para_atualizar)
+
+                conn.commit()
+                print("✅ Atualização concluída com sucesso!")
+                        
+                # 🎯 BLOCO DE FINALIZAÇÃO - CORRETAMENTE IDENTADO
+                if acao_finalizar:
+                    print("🎯 MODO FINALIZAR ATIVADO - Gerando PDF...")
+                    
+                    nome_arquivo = f"{protocolo}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+                    caminho_pdf = os.path.join("PDFS", nome_arquivo)
+                    os.makedirs("PDFS", exist_ok=True)
+
+                    try:
+                        from relatorio import gerar_pdf_segundo_preenchimento
+                        gerar_pdf_segundo_preenchimento(protocolo, caminho_pdf)
+                        print(f"📄 PDF gerado com sucesso: {caminho_pdf}")
+                        
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO pdf_gerados (processo_protocolo, setor_nome, caminho_pdf, data_geracao)
+                                VALUES (%s, %s, %s, %s)
+                            """, (protocolo, session.get("setor"), caminho_pdf, datetime.now()))
+                            print(f"✅ Registro PDF inserido no banco para protocolo {protocolo}")
+                            
+                    except Exception as e_pdf:
+                        print(f"❌ Erro ao gerar PDF: {e_pdf}")
 
                 # 🎯 MENSAGEM DE SUCESSO CONDICIONAL
                 if acao_finalizar:
