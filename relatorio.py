@@ -108,6 +108,7 @@ def gerar_pdf(formulario, caminho):
     campos_para_substituir = {
         "responsavel_analise_cpf": "tecnico",
         "responsavel_localizacao_cpf": "tecnico",
+        "responsavel_analise" : "tecnico"
     }
 
     with get_db_connection() as conn:

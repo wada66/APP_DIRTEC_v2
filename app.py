@@ -436,6 +436,9 @@ def inserir():
 
                 # 🎯 PROCESSAR FINALIZAÇÃO (PDF)
                 if acao_finalizar:
+                    
+                    formulario['responsavel_analise'] = session.get("cpf_tecnico")
+                    
                     nome_arquivo = f"{protocolo}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
                     caminho_pdf = os.path.join("PDFS", nome_arquivo)
                     os.makedirs("PDFS", exist_ok=True)
