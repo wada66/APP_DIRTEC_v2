@@ -52,9 +52,9 @@ def calcular_dias_uteis(inicio_str, fim_str):
 
 SETOR_TO_BLUEPRINT = {
     "DIG": "dig",
-    "DCOT": "dcot",
-    "DPLAM": "dplam",
-    "PRESIDENTE_DPU": "diretor_tecnico"
+    "DOT": "dcot",
+    "DPM": "dplam",
+    "PRESIDENTE_DPUR": "diretor_tecnico"
 }
 
 @app.route("/")
@@ -559,7 +559,7 @@ def baixar_pdf(filename):
         
 @app.route("/setor", methods=["GET", "POST"])
 def escolher_setor():
-    setores = ["DCOT", "DPLAM", "DIG", "PRESIDENTE_DPU"]
+    setores = ["DOT", "DPM", "DIG", "PRESIDENTE_DPUR"]
     if request.method == "POST":
         setor = request.form.get("setor")
         if setor in setores:
