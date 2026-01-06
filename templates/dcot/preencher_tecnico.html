@@ -26,11 +26,20 @@
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        h1, h2 {
+          h1 {
             color: #333;
             font-weight: 600;
             margin-bottom: 25px;
             text-align: center;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 5px;
         }
         label {
             display: block;
@@ -171,12 +180,12 @@
     </style>
 
     <!-- Botão de voltar -->
-    <a href="{{ url_for('dcot.ambiente') }}" class="btn-voltar">⬅ Voltar</a>
+    <a href="{{ url_for('dplam.ambiente') }}" class="btn-voltar">⬅ Voltar</a>
 </head>
 <body>
 <div class="container">
     <h1>Complementar Processo - Protocolo {{ processo.protocolo }}</h1>
-    <form method="POST" action="{{ url_for('dcot.preencher_tecnico', protocolo=processo.protocolo) }}">
+    <form method="POST" action="{{ url_for('dplam.preencher_tecnico', protocolo=processo.protocolo) }}">
 
         <h2>Informações Principais</h2>
 
@@ -365,6 +374,7 @@
             </label>
         </div>
 
+        <h2>Informações do Proprietário</h2>
         <label>
             Nome do Proprietário:
             <input type="text" id="nome_proprietario" name="nome_proprietario" value="{{ processo.nome_proprietario or '' }}" {% if processo.nome_proprietario %}readonly{% endif %} />
@@ -375,22 +385,10 @@
             <input type="text" id="cpf_cnpj_proprietario" name="cpf_cnpj_proprietario" maxlength="18" value="{{ processo.cpf_cnpj_proprietario or '' }}" {% if processo.cpf_cnpj_proprietario %}readonly{% endif %} />
         </label>
 
+        <h2>Imóvel e localidade</h2>
         <label>
             Matrícula do Imóvel:
             <input type="text" id="imovel_matricula" name="imovel_matricula" value="{{ processo.imovel_matricula or '' }}" {% if processo.imovel_matricula %}readonly{% endif %} />
-        </label>
-
-        <label>
-            Área (m²):
-            <input type="text" id="area" name="area" 
-                value="{{ processo.area or '' }}"
-                placeholder="Ex: 150,75"
-                class="decimal-input"
-                {% if processo.area %}readonly{% endif %}
-                title="Digite a área usando vírgula como separador decimal">
-            {% if processo.area %}
-            <button type="button" class="btn-editar-congelado" id="btn-editar-area">Editar</button>
-            {% endif %}
         </label>
 
         <label>
@@ -405,6 +403,19 @@
             {% endif %}
         </label>
 
+         <label>
+            Área (m²):
+            <input type="text" id="area" name="area" 
+                value="{{ processo.area or '' }}"
+                placeholder="Ex: 150,75"
+                class="decimal-input"
+                {% if processo.area %}readonly{% endif %}
+                title="Digite a área usando vírgula como separador decimal">
+            {% if processo.area %}
+            <button type="button" class="btn-editar-congelado" id="btn-editar-area">Editar</button>
+            {% endif %}
+         </label>
+         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <label>
                 Latitude:
@@ -431,6 +442,7 @@
             </label>
         </div>
 
+        <h2>Nivelamento da análise</h2>
         <label>
             Prioridade:
             <select id="prioridade" name="prioridade" {% if processo.prioridade %}disabled{% endif %}>
@@ -849,7 +861,7 @@ document.querySelectorAll('.trigger-condicional').forEach(checkbox => {
         console.log('🎯 Aplicando botões de edição...');
         
         const camposParaEditar = [
-            //'protocolo',
+            //'protocolo', 
             'observacoes', 'pasta_numero',
             'solicitacao_requerente', 'resposta_departamento', 'tramitacao',
             'tipologia', 'municipio', 'zona_urbana', 'macrozona_municipal',
@@ -858,7 +870,7 @@ document.querySelectorAll('.trigger-condicional').forEach(checkbox => {
             'nome_condominio', //'interesse_social', 'lei_inclui_perimetro_urbano', 
             'nome_requerente', 'tipo_requerente', 'cpf_requerente', 
             'cnpj_requerente', 'nome_proprietario', 'cpf_cnpj_proprietario',
-            //'imovel_matricula', 
+            //'imovel_matricula',
             'prioridade', 'complexidade',
             // CHECKBOXES "POSSUI"
             //'possui_apa', 'possui_utp', 'possui_curva', 'possui_faixa', 'possui_diretriz',
