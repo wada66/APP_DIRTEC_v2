@@ -216,7 +216,7 @@ def inserir():
               
                 # Inserir imóvel
                 
-                # ⚠️ CORREÇÃO: Gerar matrícula aleatória que caiba em 20 caracteres
+                # Gerar matrícula aleatória que caiba em 20 caracteres
                 matricula_imovel = formulario.get("matricula_imovel")
 
                 if not matricula_imovel or not matricula_imovel.strip():
@@ -247,7 +247,7 @@ def inserir():
                 # 2. BUSCAR ID DA ZONA APA (COM FILTRO POR APA)
                 zona_apa_id = None
                 if apa_nome and zona_apa_nome:
-                    # ✅ CORREÇÃO: Adicionar TRIM(apa) = %s na condição
+                    # CORREÇÃO: Adicionar TRIM(apa) = %s na condição
                     cur.execute("""
                         SELECT id_zona_apa 
                         FROM zona_apa 
@@ -266,7 +266,7 @@ def inserir():
                 # 3. BUSCAR ID DA ZONA UTP (COM FILTRO POR UTP)
                 zona_utp_id = None
                 if utp_nome and zona_utp_nome:
-                    # ✅ CORREÇÃO: Adicionar TRIM(utp) = %s na condição
+                    # CORREÇÃO: Adicionar TRIM(utp) = %s na condição
                     cur.execute("""
                         SELECT id_zona_utp 
                         FROM zona_utp 
@@ -336,7 +336,7 @@ def inserir():
                 macrozona_id = macrozona_id[0] if macrozona_id else None
 
                 if matricula_imovel and (zona_urbana_id or macrozona_id):
-                    print(f"🎯 TENTANDO INSERT: matricula='{formulario.get('matricula_imovel')}', zona_id={zona_urbana_id}, macro_id={macrozona_id}")
+                    print(f"TENTANDO INSERT: matricula='{formulario.get('matricula_imovel')}', zona_id={zona_urbana_id}, macro_id={macrozona_id}")
                     
                     try:
                         cur.execute("""
@@ -378,7 +378,7 @@ def inserir():
                     session.get("setor") or None,
                     formulario.get("tipologia") or None,
                     formulario.get("situacao_localizacao") or None,
-                    formulario.get("responsavel_localizacao") or None,
+                    formulario.get("responsavel_localizacao_cpf") or None,
                     inicio_localizacao,
                     fim_localizacao,
                     dias_uteis_localizacao,
@@ -407,7 +407,7 @@ def inserir():
 
                 protocolo = formulario.get("protocolo")
 
-                # 🎯 PROCESSAR ENCAMINHAMENTO
+                # PROCESSAR ENCAMINHAMENTO
                 if acao_encaminhar:
                     if not setor_destino:
                         return "Setor destino não informado", 400
@@ -434,7 +434,7 @@ def inserir():
                         None,
                     ))
 
-                # 🎯 PROCESSAR FINALIZAÇÃO (PDF)
+                # PROCESSAR FINALIZAÇÃO (PDF)
                 if acao_finalizar:
                     
                     formulario['responsavel_analise'] = session.get("cpf_tecnico")
@@ -457,11 +457,11 @@ def inserir():
                         print(f"Erro ao gerar PDF: {e_pdf}")
                         return "Erro ao gerar PDF", 500
 
-                # 🎯 COMMIT PRINCIPAL (ÚNICO)
+                # COMMIT PRINCIPAL (ÚNICO)
                 conn.commit()
                 print(f"✅ Processo {protocolo} criado com sucesso!")
 
-                # 🎯 REDIRECIONAMENTO
+                # REDIRECIONAMENTO
                 setor_atual = session.get("setor")
                 blueprint_redirect = SETOR_TO_BLUEPRINT.get(setor_atual)
                 

@@ -236,7 +236,7 @@ def gerar_pdf_segundo_preenchimento(protocolo, caminho):
         
     dados_completos['situacao_analise'] = 'FINALIZADA'
             
-    # ✅ CONVERTER CPFs PARA NOMES (igual na função original)
+    # CONVERTER CPFs PARA NOMES (igual na função original)
     campos_para_substituir = {
         "responsavel_analise": "tecnico",
         "responsavel_localizacao": "tecnico",
