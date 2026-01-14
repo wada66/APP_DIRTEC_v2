@@ -180,12 +180,12 @@
     </style>
 
     <!-- Botão de voltar -->
-    <a href="{{ url_for('dplam.ambiente') }}" class="btn-voltar">⬅ Voltar</a>
+    <a href="{{ url_for('diretor_tecnico.ambiente') }}" class="btn-voltar">⬅ Voltar</a>
 </head>
 <body>
 <div class="container">
     <h1>Complementar Processo - Protocolo {{ processo.protocolo }}</h1>
-    <form method="POST" action="{{ url_for('dplam.preencher_tecnico', protocolo=processo.protocolo) }}">
+    <form method="POST" action="{{ url_for('diretor_tecnico.preencher_tecnico', protocolo=processo.protocolo) }}" enctype="multipart/form-data">
 
         <h2>Informações Principais</h2>
 
@@ -601,6 +601,30 @@
             </label>
         </div>
 
+        <hr>
+
+        <h3>Relatório de Análise</h3>
+        <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+            <label>
+                <strong>Anexar relatório de análise (PDF):</strong>
+                <input type="file" name="arquivo_pdf" accept=".pdf,application/pdf" 
+                    style="display: block; margin-top: 8px; padding: 10px; width: 100%; 
+                            border: 1px solid #ced4da; border-radius: 6px;">
+            </label>
+            
+            <!-- Mostrar status se já existir relatório -->
+            {% if tem_relatorio %}
+            <div style="margin-top: 10px; padding: 10px; background-color: #e3f2fd; border-radius: 5px;">
+                <strong>Status:</strong> Já existe um relatório de análise anexado a este processo.
+                <br><small><strong>Atenção:</strong> Enviar um novo arquivo substituirá o anterior.</small>
+            </div>
+            {% endif %}
+            
+            <small style="display: block; margin-top: 5px; color: #666;">
+                Este relatório será anexado ao final do documento. Tamanho máximo: 10MB.
+            </small>
+        </div>
+        
         <div class="button-group">
             <button type="submit" name="salvar" value="1">Salvar</button>
             <button type="submit" name="finalizar" value="1">Finalizar</button>

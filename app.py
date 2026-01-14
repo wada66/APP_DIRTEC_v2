@@ -10,6 +10,7 @@ from dcot import bp as dcot_bp
 from dplam import bp as dplam_bp
 from diretor_tecnico import bp as diretor_tecnico_bp
 from relatorio import gerar_pdf
+from pdf_manager import salvar_relatorio_analise, mesclar_com_relatorio_analise
 
 load_dotenv()
 
@@ -153,6 +154,16 @@ def index():
 def inserir():
     formulario = request.form.to_dict(flat=True)
 
+    if 'arquivo_pdf' in request.files:
+        arquivo_pdf = request.files['arquivo_pdf']
+        protocolo = formulario.get("protocolo")  # ← Criar variável aqui
+        if arquivo_pdf and arquivo_pdf.filename != '' and protocolo:
+            caminho_salvo = salvar_relatorio_analise(arquivo_pdf, protocolo)
+            if caminho_salvo:
+                print(f"✅ Relatório de análise salvo para protocolo {protocolo}: {caminho_salvo}")
+            else:
+                print(f"⚠️  Arquivo PDF inválido ou muito grande para protocolo {protocolo}")
+    
     acao_salvar = formulario.get("salvar")
     acao_finalizar = formulario.get("finalizar")
     acao_encaminhar = formulario.get("encaminhar")
@@ -444,17 +455,23 @@ def inserir():
                     os.makedirs("PDFS", exist_ok=True)
 
                     try:
+                        # 1. Gerar PDF principal (como antes)
                         gerar_pdf(formulario, caminho_pdf)
-                        print(f"PDF gerado com sucesso: {caminho_pdf}")
+                        print(f"✅ PDF principal gerado: {caminho_pdf}")
                         
+                        # 2. ✅ PASSO 3: MESCLAR COM RELATÓRIO DE ANÁLISE (se existir)
+                        caminho_pdf_final = mesclar_com_relatorio_analise(caminho_pdf, protocolo)
+                        
+                        # 3. Registrar no banco o PDF FINAL (mesclado ou não)
                         cur.execute("""
                             INSERT INTO pdf_gerados (processo_protocolo, setor_nome, caminho_pdf, data_geracao)
                             VALUES (%s, %s, %s, %s)
-                        """, (protocolo, session.get("setor"), caminho_pdf, datetime.now()))
-                        print(f"Registro PDF inserido no banco para protocolo {protocolo}")
+                        """, (protocolo, session.get("setor"), caminho_pdf_final, datetime.now()))
+                        
+                        print(f"✅ PDF final registrado no banco: {caminho_pdf_final}")
                         
                     except Exception as e_pdf:
-                        print(f"Erro ao gerar PDF: {e_pdf}")
+                        print(f"❌ Erro ao gerar PDF: {e_pdf}")
                         return "Erro ao gerar PDF", 500
 
                 # COMMIT PRINCIPAL (ÚNICO)

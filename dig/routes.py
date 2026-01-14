@@ -3,7 +3,8 @@ import os
 from flask import flash, render_template, session, redirect, url_for, request
 from . import bp
 from db import get_db_connection
-import numpy as np  
+import numpy as np
+from pdf_manager import salvar_relatorio_analise, mesclar_com_relatorio_analise, obter_relatorio_analise  
 
 def calcular_dias_uteis(inicio_str, fim_str):
     if not inicio_str or not fim_str:
@@ -231,6 +232,15 @@ def preencher_tecnico(protocolo):
             with get_db_connection() as conn:
                 # 1. ATUALIZAR TABELA PROCESSO (apenas campos preenchidos no formulário)
                 with conn.cursor() as cur:
+                    
+                    if 'arquivo_pdf' in request.files:
+                        arquivo_pdf = request.files['arquivo_pdf']
+                        if arquivo_pdf and arquivo_pdf.filename != '':
+                            caminho_salvo = salvar_relatorio_analise(arquivo_pdf, protocolo)
+                            if caminho_salvo:
+                                print(f"✅ Relatório de análise (técnico) salvo para protocolo {protocolo}: {caminho_salvo}")
+                            else:
+                                print(f"⚠️  Arquivo PDF inválido para protocolo {protocolo}")
                     # Buscar dados atuais do processo
                     cur.execute("SELECT * FROM processo WHERE protocolo = %s", (protocolo,))
                     processo_atual = cur.fetchone()
@@ -721,16 +731,23 @@ def preencher_tecnico(protocolo):
 
                     try:
                         from relatorio import gerar_pdf_segundo_preenchimento
-                        gerar_pdf_segundo_preenchimento(protocolo, caminho_pdf)
-                        print(f"📄 PDF gerado com sucesso: {caminho_pdf}")
                         
+                        # 1. Gerar PDF principal (como antes)
+                        gerar_pdf_segundo_preenchimento(protocolo, caminho_pdf)
+                        print(f"📄 PDF principal gerado: {caminho_pdf}")
+                        
+                        # 2. ✅ MESCLAR COM RELATÓRIO DE ANÁLISE (se existir)
+                        caminho_pdf_final = mesclar_com_relatorio_analise(caminho_pdf, protocolo)
+                        
+                        # 3. Registrar no banco o PDF FINAL (mesclado ou não)
                         with conn.cursor() as cur:
                             cur.execute("""
                                 INSERT INTO pdf_gerados (processo_protocolo, setor_nome, caminho_pdf, data_geracao)
                                 VALUES (%s, %s, %s, %s)
-                            """, (protocolo, session.get("setor"), caminho_pdf, datetime.now()))
-                            print(f"✅ Registro PDF inserido no banco para protocolo {protocolo}")
+                            """, (protocolo, session.get("setor"), caminho_pdf_final, datetime.now()))
                             
+                        print(f"✅ PDF final registrado no banco: {caminho_pdf_final}")
+                        
                     except Exception as e_pdf:
                         print(f"❌ Erro ao gerar PDF: {e_pdf}")
                         
@@ -887,6 +904,7 @@ def preencher_tecnico(protocolo):
                 if resultado:
                     imovel_municipio = resultado[0].strip
  
+    tem_relatorio = obter_relatorio_analise(protocolo) is not None
                 
     return render_template(
         "dig/preencher_tecnico.html",
@@ -909,7 +927,8 @@ def preencher_tecnico(protocolo):
         imovel_municipio = imovel_municipio,
         situacoes_localizacao=['LOCALIZADA', 'NÃO PRECISA LOCALIZAR'],
         zonas_urbanas=zonas_urbanas,
-        macrozonas=macrozonas
+        macrozonas=macrozonas,
+        tem_relatorio=tem_relatorio
     )
 
 

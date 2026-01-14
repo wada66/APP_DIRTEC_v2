@@ -3,7 +3,8 @@ import os
 from flask import flash, render_template, session, redirect, url_for, request
 from . import bp
 from db import get_db_connection
-import numpy as np  
+import numpy as np
+from pdf_manager import salvar_relatorio_analise, mesclar_com_relatorio_analise, obter_relatorio_analise  
 
 def calcular_dias_uteis(inicio_str, fim_str):
     if not inicio_str or not fim_str:
@@ -148,13 +149,13 @@ def captar_processo(protocolo):
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # ATUALIZAR O RESPONSÁVEL NA ANÁLISE (já existente)
+                # 1. ATUALIZAR O RESPONSÁVEL NA ANÁLISE (já existente)
                 cur.execute("""
                     UPDATE analise SET responsavel_analise = %s
                     WHERE processo_protocolo = %s
                 """, (cpf_tecnico, protocolo))
 
-                # ÚNICA NOVIDADE: Atualizar o último registro do histórico
+                # 2. ÚNICA NOVIDADE: Atualizar o último registro do histórico
                 cur.execute("""
                     UPDATE historico 
                     SET tecnico_novo_responsavel = %s
@@ -214,7 +215,7 @@ def preencher_tecnico(protocolo):
                 return False
             return val == 'on' or val == 'true' or val == '1' or val == 'True'
 
-        # Normaliza checkbox para booleano real 
+        # Normaliza checkbox para booleano real - VERSÃO CORRIGIDA
         checkbox_fields = ["interesse_social", "perimetro_urbano",
                         "possui_apa", "possui_utp", "possui_manancial",
                         "possui_curva", "possui_faixa", "possui_diretriz"]
@@ -231,6 +232,15 @@ def preencher_tecnico(protocolo):
             with get_db_connection() as conn:
                 # 1. ATUALIZAR TABELA PROCESSO (apenas campos preenchidos no formulário)
                 with conn.cursor() as cur:
+                    
+                    if 'arquivo_pdf' in request.files:
+                        arquivo_pdf = request.files['arquivo_pdf']
+                        if arquivo_pdf and arquivo_pdf.filename != '':
+                            caminho_salvo = salvar_relatorio_analise(arquivo_pdf, protocolo)
+                            if caminho_salvo:
+                                print(f"✅ Relatório de análise (técnico) salvo para protocolo {protocolo}: {caminho_salvo}")
+                            else:
+                                print(f"⚠️  Arquivo PDF inválido para protocolo {protocolo}")
                     # Buscar dados atuais do processo
                     cur.execute("SELECT * FROM processo WHERE protocolo = %s", (protocolo,))
                     processo_atual = cur.fetchone()
@@ -280,7 +290,7 @@ def preencher_tecnico(protocolo):
                                 valor_formulario = None
                                 print(f"🔧 Campo {campo} convertido de vazio para NULL")
                         
-                        # LÓGICA DE ATUALIZAÇÃO MODIFICADA
+                        # CORREÇÃO CRÍTICA: LÓGICA DE ATUALIZAÇÃO MODIFICADA
                         deve_atualizar = False
                         valor_final = valor_formulario
                         
@@ -306,12 +316,12 @@ def preencher_tecnico(protocolo):
                         if deve_atualizar:
                             campos_para_atualizar.append(f"{campo} = %s")
                             valores_para_atualizar.append(valor_final)
-                            
-                    # Verificar se inicio_localizacao ou fim_localizacao estão sendo atualizados
+
+                        # Verificar se inicio_localizacao ou fim_localizacao estão sendo atualizados
                     if ('inicio_localizacao' in [c.split()[0] for c in campos_para_atualizar] or 
                         'fim_localizacao' in [c.split()[0] for c in campos_para_atualizar]):
                         
-                        print(f"Datas de localização alteradas - recalculando dias úteis...")
+                        print(f"🎯 Datas de localização alteradas - recalculando dias úteis...")
                         
                         # Obter valores finais
                         inicio_final = formulario.get('inicio_localizacao') or processo_dict.get('inicio_localizacao')
@@ -326,8 +336,7 @@ def preencher_tecnico(protocolo):
                         # Adicionar ao UPDATE
                         campos_para_atualizar.append("dias_uteis_localizacao = %s")
                         valores_para_atualizar.append(dias_uteis_localizacao)
-                        print(f"Dias úteis localização: {dias_uteis_localizacao}")
-
+                        print(f"🎯 Dias úteis localização: {dias_uteis_localizacao}")
 
                     # Executar UPDATE apenas se houver campos para atualizar
                     if campos_para_atualizar:
@@ -365,7 +374,7 @@ def preencher_tecnico(protocolo):
                         # Converter texto para IDs (quando necessário)
                         zona_apa_id = None
                         zona_utp_id = None
-
+                        
                         # LÓGICA APA                       
                         if possui_apa:
                             zona_apa_texto = formulario.get("zona_apa")
@@ -418,8 +427,8 @@ def preencher_tecnico(protocolo):
                             "classificacao_viaria": formulario.get("sistema_viario"),
                             "curva_inundacao": formulario.get("curva_inundacao"),
                             "faixa_servidao": formulario.get("faixa_servidao"),
-                            "zona_apa": zona_apa_id,  # ✅ PODE SER ID OU NULL
-                            "zona_utp": zona_utp_id,   # ✅ PODE SER ID OU NULL
+                            "zona_apa": zona_apa_id,  # PODE SER ID OU NULL
+                            "zona_utp": zona_utp_id,   # PODE SER ID OU NULL
                             "area": area or None,
                             "localidade_imovel": formulario.get("localidade_imovel"), 
                             "latitude": latitude or None,
@@ -545,7 +554,7 @@ def preencher_tecnico(protocolo):
                     
                     # Atualizar banco
                     with conn.cursor() as cur:
-                        print(f" EXECUTANDO UPDATE: matricula={matricula_imovel}, zona_id={id_zona_urbana}, macro_id={id_macrozona}")
+                        print(f"🎯 EXECUTANDO UPDATE: matricula={matricula_imovel}, zona_id={id_zona_urbana}, macro_id={id_macrozona}")
                         
                         cur.execute("""
                             INSERT INTO imovel_zona_macrozona (imovel_matricula, zona_urbana_id, macrozona_id) 
@@ -668,9 +677,9 @@ def preencher_tecnico(protocolo):
                                 WHERE processo_protocolo = %s
                             """, (fim_analise, dias_uteis_analise, cpf_tecnico, protocolo))
                             
-                            print(f" PROCESSO FINALIZADO: {protocolo}")
-                            print(f" FIM_ANALISE: {fim_analise}")
-                            print(f" DIAS ÚTEIS: {dias_uteis_analise}")
+                            print(f"🎯 PROCESSO FINALIZADO: {protocolo}")
+                            print(f"🎯 FIM_ANALISE: {fim_analise}")
+                            print(f"🎯 DIAS ÚTEIS: {dias_uteis_analise}")
                         else:
                             # Fallback caso não encontre inicio_analise (não deve acontecer)
                             cur.execute("UPDATE analise SET situacao_analise = 'FINALIZADA', responsavel_analise = %s WHERE processo_protocolo = %s", 
@@ -711,7 +720,7 @@ def preencher_tecnico(protocolo):
 
                 conn.commit()
                 print("✅ Atualização concluída com sucesso!")
-                        
+
                 # BLOCO DE FINALIZAÇÃO - CORRETAMENTE IDENTADO
                 if acao_finalizar:
                     print("🎯 MODO FINALIZAR ATIVADO - Gerando PDF...")
@@ -722,20 +731,27 @@ def preencher_tecnico(protocolo):
 
                     try:
                         from relatorio import gerar_pdf_segundo_preenchimento
-                        gerar_pdf_segundo_preenchimento(protocolo, caminho_pdf)
-                        print(f"📄 PDF gerado com sucesso: {caminho_pdf}")
                         
+                        # 1. Gerar PDF principal (como antes)
+                        gerar_pdf_segundo_preenchimento(protocolo, caminho_pdf)
+                        print(f"📄 PDF principal gerado: {caminho_pdf}")
+                        
+                        # 2. ✅ MESCLAR COM RELATÓRIO DE ANÁLISE (se existir)
+                        caminho_pdf_final = mesclar_com_relatorio_analise(caminho_pdf, protocolo)
+                        
+                        # 3. Registrar no banco o PDF FINAL (mesclado ou não)
                         with conn.cursor() as cur:
                             cur.execute("""
                                 INSERT INTO pdf_gerados (processo_protocolo, setor_nome, caminho_pdf, data_geracao)
                                 VALUES (%s, %s, %s, %s)
-                            """, (protocolo, session.get("setor"), caminho_pdf, datetime.now()))
-                            print(f"✅ Registro PDF inserido no banco para protocolo {protocolo}")
+                            """, (protocolo, session.get("setor"), caminho_pdf_final, datetime.now()))
                             
+                        print(f"✅ PDF final registrado no banco: {caminho_pdf_final}")
+                        
                     except Exception as e_pdf:
                         print(f"❌ Erro ao gerar PDF: {e_pdf}")
-
-                # MENSAGEM DE SUCESSO CONDICIONAL
+                        
+                # 🎯 MENSAGEM DE SUCESSO CONDICIONAL
                 if acao_finalizar:
                     flash(f"✅ Processo {protocolo} finalizado com sucesso! PDF gerado.", "success")
                 else:
@@ -888,6 +904,7 @@ def preencher_tecnico(protocolo):
                 if resultado:
                     imovel_municipio = resultado[0].strip
  
+    tem_relatorio = obter_relatorio_analise(protocolo) is not None
                 
     return render_template(
         "dcot/preencher_tecnico.html",
@@ -910,7 +927,8 @@ def preencher_tecnico(protocolo):
         imovel_municipio = imovel_municipio,
         situacoes_localizacao=['LOCALIZADA', 'NÃO PRECISA LOCALIZAR'],
         zonas_urbanas=zonas_urbanas,
-        macrozonas=macrozonas
+        macrozonas=macrozonas,
+        tem_relatorio=tem_relatorio
     )
 
 
@@ -925,7 +943,7 @@ def encaminhar_processo(protocolo, setor_destino):
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # 1. CAPTURAR ESTADO ATUAL
+                # 1️⃣ CAPTURAR ESTADO ATUAL
                 cur.execute("SELECT setor_nome FROM processo WHERE protocolo = %s", (protocolo,))
                 row = cur.fetchone()
                 if not row:
@@ -935,7 +953,7 @@ def encaminhar_processo(protocolo, setor_destino):
                 setor_origem = row[0]
                 print(f"🔍 DEBUG: Processo {protocolo} saindo de {setor_origem} para {setor_destino}")
 
-                # 2. REGISTRAR NO HISTÓRICO
+                # 2️⃣ REGISTRAR NO HISTÓRICO
                 cur.execute("""
                     INSERT INTO historico (
                         processo_protocolo,

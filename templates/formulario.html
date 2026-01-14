@@ -192,7 +192,7 @@
 
 <div class="container">
     <h1>Formulário de Processo</h1>
-    <form method="POST" action="{{ url_for('inserir') }}">
+    <form method="POST" action="{{ url_for('inserir') }}" enctype="multipart/form-data">
 
         <h2>Informações Principais</h2>
         <label>Protocolo: <input type="text" name="protocolo" required></label>
@@ -504,11 +504,27 @@
             </label>
         </div>
 
-        <div class="button-group">
+        <h2>Relatório de Análise</h2>
+        <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+            <label>
+                <strong>Anexar relatório de análise (PDF):</strong>
+                <input type="file" name="arquivo_pdf" accept=".pdf,application/pdf" 
+                    style="display: block; margin-top: 8px; padding: 10px; width: 100%; 
+                            border: 1px solid #ced4da; border-radius: 6px;">
+            </label>
+            <small style="display: block; margin-top: 5px; color: #666;">
+                Este relatório será anexado ao final do documento. Tamanho máximo: 10MB.
+                <br><strong>Observação:</strong> Se já existir um relatório para este protocolo, será substituído.
+            </small>
+        </div>
+
+           <div class="button-group">
             <button type="submit" name="salvar" value="1">Salvar</button>
             <button type="submit" name="finalizar" value="1">Finalizar</button>
             <button type="reset">Limpar</button>
         </div>
+
+        <hr>
     </form>
 </div>
 
