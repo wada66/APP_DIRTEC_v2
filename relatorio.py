@@ -125,10 +125,35 @@ def gerar_pdf(formulario, caminho):
     # Função para adicionar linha no PDF
     def add_row(chave, valor):
         legenda = LEGENDAS_AMIGAVEIS.get(chave, chave.capitalize().replace("_", " "))
+        texto = str(valor)
+        
+        # 1. Legenda (sempre uma linha)
         pdf.set_font("Arial", "B", 12)
         pdf.cell(50, 10, f"{legenda}:", border=0, align='R')
+        
+        # 2. Valor com quebra a cada 58 caracteres
         pdf.set_font("Arial", "", 12)
-        pdf.cell(0, 10, str(valor), border=0, ln=True, align='L')
+        
+        # Se texto for curto (<58 chars), uma linha normal
+        if len(texto) <= 58:
+            pdf.cell(0, 10, texto, border=0, ln=True, align='L')
+            pdf.ln(2)  # Espaço pequeno
+        else:
+            # Texto longo: quebrar a cada 58 caracteres
+            linhas = []
+            for i in range(0, len(texto), 58):
+                linha = texto[i:i+58]
+                linhas.append(linha)
+            
+            # Primeira linha (alinhada com legenda)
+            pdf.cell(0, 10, linhas[0], border=0, ln=True, align='L')
+            
+            # Linhas seguintes (com indentação)
+            for linha in linhas[1:]:
+                pdf.cell(50, 10, "", border=0, align='R')  # Espaço vazio para alinhar
+                pdf.cell(0, 10, linha, border=0, ln=True, align='L')
+            
+            pdf.ln(2) 
 
     for chave, valor in formulario.items():
         
@@ -257,10 +282,35 @@ def gerar_pdf_segundo_preenchimento(protocolo, caminho):
     # Função para adicionar linha no PDF (igual à original)
     def add_row(chave, valor):
         legenda = LEGENDAS_AMIGAVEIS_2.get(chave, chave.capitalize().replace("_", " "))
+        texto = str(valor)
+        
+        # 1. Legenda (sempre uma linha)
         pdf.set_font("Arial", "B", 12)
         pdf.cell(50, 10, f"{legenda}:", border=0, align='R')
+        
+        # 2. Valor com quebra a cada 58 caracteres
         pdf.set_font("Arial", "", 12)
-        pdf.cell(0, 10, str(valor), border=0, ln=True, align='L')
+        
+        # Se texto for curto (<58 chars), uma linha normal
+        if len(texto) <= 58:
+            pdf.cell(0, 10, texto, border=0, ln=True, align='L')
+            pdf.ln(2)  # Espaço pequeno
+        else:
+            # Texto longo: quebrar a cada 58 caracteres
+            linhas = []
+            for i in range(0, len(texto), 58):
+                linha = texto[i:i+58]
+                linhas.append(linha)
+            
+            # Primeira linha (alinhada com legenda)
+            pdf.cell(0, 10, linhas[0], border=0, ln=True, align='L')
+            
+            # Linhas seguintes (com indentação)
+            for linha in linhas[1:]:
+                pdf.cell(50, 10, "", border=0, align='R')  # Espaço vazio para alinhar
+                pdf.cell(0, 10, linha, border=0, ln=True, align='L')
+            
+            pdf.ln(2) 
 
     # Gerar PDF com dados completos
     for chave, valor in dados_completos.items():
