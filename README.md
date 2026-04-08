@@ -1,0 +1,7 @@
+![Captura de tela_8-4-2026_162044_](https://github.com/user-attachments/assets/a9386f0a-e0e2-4953-9aef-ab33b27105e0)
+![Captura de tela_8-4-2026_16175_127 0 0 1](https://github.com/user-attachments/assets/1ccc9735-5387-4564-9781-d818bb5def42)
+![Captura de tela_8-4-2026_161719_127 0 0 1](https://github.com/user-attachments/assets/912c874e-5c0d-489f-8e7d-69160ef34ea8)
+![Captura de tela_8-4-2026_16186_127 0 0 1](https://github.com/user-attachments/assets/cc7c5fa3-827c-4fcd-abed-96128b5a295c)
+![Captura de tela_8-4-2026_16190_127 0 0 1](https://github.com/user-attachments/assets/cb4e3011-98a3-45df-9c15-f7916cef0c72)
+![Captura de tela_8-4-2026_161952_127 0 0 1](https://github.com/user-attachments/assets/49567cfd-1e4a-4f69-9ed0-8666fbd78941)
+![Captura de tela_8-4-2026_162023_127 0 0 1](https://github.com/user-attachments/assets/8456f40f-aae4-4c38-8d3d-3baccf41f54e)
